@@ -8,7 +8,6 @@ model = SentenceTransformer("all-MiniLM-L6-v2")
 # Chroma persistent storage
 client = chromadb.PersistentClient(path="./vector_db")
 
-# Delete existing collection to avoid duplicate IDs on re-run
 try:
     client.delete_collection(name="sar_knowledge")
     print("Cleared existing collection.")

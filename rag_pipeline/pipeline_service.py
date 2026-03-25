@@ -522,7 +522,7 @@ Paragraph 5: filing decision, applicable regulation, and enhanced monitoring.
             "prompt_sha256": prompt_sha,
             "prompt_sha": prompt_sha,
             "model_name": self.model_name,
-            "model_options": {"num_ctx": 2048, "temperature": 0.2, "top_p": 0.9},
+            "model_options": {"num_ctx": 4096, "temperature": 0.2, "top_p": 0.9},
             "system_prompt": system_prompt,
             "user_prompt": user_prompt,
         }
