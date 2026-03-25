@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login | SAR Narrative Generator</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="login-wrap page">
+      <div class="login-card">
+        <h2 class="login-title">SAR Narrative Generator</h2>
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" required />
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required />
+          </div>
+          <button class="btn-primary" type="submit" style="width: 100%">Login</button>
+          <div id="error" class="error"></div>
+        </form>
+      </div>
+    </div>
+
+    <script type="module">
+      import { API_BASE } from "./api.js";
+
+      const loginForm = document.getElementById("loginForm");
+      const errorEl = document.getElementById("error");
+
+      loginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        errorEl.textContent = "";
+
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+
+        try {
+          const response = await fetch(`${API_BASE}/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Invalid username or password");
+          }
+
+          const data = await response.json();
+          sessionStorage.setItem("jwt_token", data.access_token);
+          sessionStorage.setItem("username", data.username);
+          sessionStorage.setItem("role", data.role);
+          window.location.href = "dashboard.html";
+        } catch (error) {
+          errorEl.textContent = error.message || "Login failed";
+        }
+      });
+    </script>
+  </body>
+</html>

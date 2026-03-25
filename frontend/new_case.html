@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>New Case | SAR Narrative Generator</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="navbar">
+        <div class="nav-title">SAR Narrative Generator</div>
+        <div class="actions">
+          <a class="btn-secondary" href="dashboard.html">Dashboard</a>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="card">
+          <h3>Upload Alert JSON</h3>
+          <div id="dropZone" class="drop-zone">
+            Drag and drop alert JSON here, or click to select file
+          </div>
+          <input id="fileInput" type="file" accept="application/json" class="hidden" />
+          <div id="error" class="error"></div>
+        </div>
+
+        <div class="preview-grid" style="margin-top: 16px">
+          <div class="card">
+            <h3>Alert Preview</h3>
+            <div id="previewTable"></div>
+          </div>
+
+          <div class="card">
+            <h3>Run Pipeline</h3>
+            <button id="submitBtn" class="btn-primary" disabled>Submit Case</button>
+            <div id="loading" class="hidden" style="text-align:center; margin-top: 14px;">
+              <div class="spinner"></div>
+              <div>Running pipeline. This may take 60-90 seconds...</div>
+            </div>
+            <div id="result" style="margin-top: 12px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { createCase } from "./api.js";
+
+      if (!sessionStorage.getItem("jwt_token")) {
+        window.location.href = "index.html";
+      }
+
+      const dropZone = document.getElementById("dropZone");
+      const fileInput = document.getElementById("fileInput");
+      const previewTable = document.getElementById("previewTable");
+      const submitBtn = document.getElementById("submitBtn");
+      const loadingEl = document.getElementById("loading");
+      const resultEl = document.getElementById("result");
+      const errorEl = document.getElementById("error");
+
+      let alertPayload = null;
+
+      function flattenObject(obj, prefix = "") {
+        const rows = [];
+        for (const [key, value] of Object.entries(obj || {})) {
+          const nextKey = prefix ? `${prefix}.${key}` : key;
+          if (value && typeof value === "object" && !Array.isArray(value)) {
+            rows.push(...flattenObject(value, nextKey));
+          } else {
+            rows.push([nextKey, Array.isArray(value) ? JSON.stringify(value) : String(value)]);
+          }
+        }
+        return rows;
+      }
+
+      function renderPreview(json) {
+        const rows = flattenObject(json);
+        previewTable.innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Field</th><th>Value</th></tr></thead>
+              <tbody>
+                ${rows.map(([field, value]) => `<tr><td>${field}</td><td>${value}</td></tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      async function processFile(file) {
+        errorEl.textContent = "";
+        try {
+          const text = await file.text();
+          const json = JSON.parse(text);
+          alertPayload = json;
+          renderPreview(json);
+          submitBtn.disabled = false;
+        } catch (error) {
+          alertPayload = null;
+          submitBtn.disabled = true;
+          errorEl.textContent = `Invalid JSON file: ${error.message}`;
+        }
+      }
+
+      dropZone.addEventListener("click", () => fileInput.click());
+      dropZone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        dropZone.classList.add("dragging");
+      });
+      dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragging"));
+      dropZone.addEventListener("drop", async (event) => {
+        event.preventDefault();
+        dropZone.classList.remove("dragging");
+        const file = event.dataTransfer.files[0];
+        if (file) {
+          await processFile(file);
+        }
+      });
+      fileInput.addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          await processFile(file);
+        }
+      });
+
+      submitBtn.addEventListener("click", async () => {
+        if (!alertPayload) return;
+
+        submitBtn.disabled = true;
+        loadingEl.classList.remove("hidden");
+        resultEl.innerHTML = "";
+
+        try {
+          const created = await createCase(alertPayload);
+          const rules = ((created.evidence_pack || {}).rule_summary || [])
+            .map((rule) => `<li>${rule.rule_id} - ${rule.rule_name}</li>`)
+            .join("");
+          resultEl.innerHTML = `
+            <div class="success">Case created: ${created.case_id}</div>
+            <p><strong>Risk Level:</strong> <span class="badge ${(created.risk_level || "LOW") === "HIGH" ? "risk-high" : (created.risk_level === "MEDIUM" ? "risk-medium" : "risk-low")}">${created.risk_level}</span></p>
+            <p><strong>Triggered Rules:</strong></p>
+            <ul>${rules || "<li>No rules triggered</li>"}</ul>
+            <p><strong>Narrative Preview:</strong></p>
+            <div class="card">${(created.final_sar && created.final_sar.narrative) || "N/A"}</div>
+            <p style="margin-top: 12px;"><a class="btn-primary" href="review.html?case_id=${encodeURIComponent(created.case_id)}">Go to Full Review</a></p>
+          `;
+        } catch (error) {
+          resultEl.innerHTML = `<div class="error">Failed to create case: ${error.message}</div>`;
+        } finally {
+          loadingEl.classList.add("hidden");
+          submitBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

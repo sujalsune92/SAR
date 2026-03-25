@@ -1,0 +1,21 @@
+{
+  "alert_id": "ALERT_9934",
+  "customer_id": "CUST_112",
+  "customer_name": "Mohammed Farooq",
+  "account_type": "Savings",
+  "customer_profile": "Student",
+  "alert_type": "HAWALA",
+  "transactions": {
+    "transaction_count": 45,
+    "total_amount": 875000,
+    "time_window_days": 4,
+    "destination_country": "MYANMAR",
+    "reporting_threshold": 1000000
+  },
+  "customer_financials": {
+    "declared_monthly_income": 15000,
+    "avg_monthly_deposits_12m": 12000,
+    "historical_baseline_txn_count": 3
+  },
+  "pattern": "cash deposit multiple accounts structuring"
+}

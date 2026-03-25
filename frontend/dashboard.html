@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard | SAR Narrative Generator</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="navbar">
+        <div class="nav-title">SAR Narrative Generator</div>
+        <div class="actions">
+          <a class="btn-secondary" href="new_case.html">New Case</a>
+          <button id="logoutBtn" class="btn-muted">Logout</button>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="grid-4" id="summaryGrid"></div>
+
+        <div class="card">
+          <h3>Cases</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Case ID</th>
+                  <th>Alert Type</th>
+                  <th>Risk Level</th>
+                  <th>Status</th>
+                  <th>Created At</th>
+                  <th>SLA (hours)</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="caseRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { getCases, exportPDF } from "./api.js";
+
+      if (!sessionStorage.getItem("jwt_token")) {
+        window.location.href = "index.html";
+      }
+
+      const summaryGrid = document.getElementById("summaryGrid");
+      const caseRows = document.getElementById("caseRows");
+      const logoutBtn = document.getElementById("logoutBtn");
+
+      logoutBtn.addEventListener("click", () => {
+        sessionStorage.clear();
+        window.location.href = "index.html";
+      });
+
+      function riskClass(level) {
+        const value = (level || "LOW").toUpperCase();
+        if (value === "HIGH") return "risk-high";
+        if (value === "MEDIUM") return "risk-medium";
+        return "risk-low";
+      }
+
+      function formatSla(createdAt) {
+        const created = new Date(createdAt);
+        const diffHours = (Date.now() - created.getTime()) / (1000 * 60 * 60);
+        const rounded = diffHours.toFixed(1);
+        const className = diffHours > 24 ? "sla-danger" : "";
+        return `<span class="${className}">${rounded}</span>`;
+      }
+
+      function renderSummary(cases) {
+        const total = cases.length;
+        const high = cases.filter((c) => (c.risk_level || "").toUpperCase() === "HIGH").length;
+        const pending = cases.filter((c) => c.status === "PENDING_ANALYST_REVIEW").length;
+        const approved = cases.filter((c) => c.status === "APPROVED").length;
+
+        summaryGrid.innerHTML = [
+          { label: "Total Cases", value: total },
+          { label: "High Risk", value: high },
+          { label: "Pending Review", value: pending },
+          { label: "Approved", value: approved },
+        ]
+          .map(
+            (item) => `
+              <div class="card">
+                <div class="summary-label">${item.label}</div>
+                <div class="summary-value">${item.value}</div>
+              </div>
+            `
+          )
+          .join("");
+      }
+
+      async function downloadPdf(caseId) {
+        try {
+          const blob = await exportPDF(caseId);
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${caseId}.pdf`;
+          a.click();
+          URL.revokeObjectURL(url);
+        } catch (error) {
+          alert(`PDF export failed: ${error.message}`);
+        }
+      }
+
+      function renderTable(cases) {
+        caseRows.innerHTML = cases
+          .map(
+            (c) => `
+            <tr>
+              <td>${c.case_id}</td>
+              <td>${(c.final_sar && c.final_sar.alert_type) || c.alert_id || "N/A"}</td>
+              <td><span class="badge ${riskClass(c.risk_level)}">${c.risk_level || "LOW"}</span></td>
+              <td>${c.status || "N/A"}</td>
+              <td>${new Date(c.created_at).toLocaleString()}</td>
+              <td>${formatSla(c.created_at)}</td>
+              <td>
+                <div class="actions">
+                  <a class="btn-secondary" href="review.html?case_id=${encodeURIComponent(c.case_id)}">Review</a>
+                  <button class="btn-primary" data-pdf="${c.case_id}">Download PDF</button>
+                  <a class="btn-warning" href="audit.html?case_id=${encodeURIComponent(c.case_id)}">View Audit</a>
+                </div>
+              </td>
+            </tr>
+          `
+          )
+          .join("");
+
+        document.querySelectorAll("button[data-pdf]").forEach((button) => {
+          button.addEventListener("click", () => downloadPdf(button.getAttribute("data-pdf")));
+        });
+      }
+
+      async function loadCases() {
+        try {
+          const cases = await getCases();
+          renderSummary(cases);
+          renderTable(cases);
+        } catch (error) {
+          alert(`Unable to load cases: ${error.message}`);
+        }
+      }
+
+      await loadCases();
+      setInterval(loadCases, 30000);
+    </script>
+  </body>
+</html>

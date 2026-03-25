@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audit Trail | SAR Narrative Generator</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="navbar">
+        <div class="nav-title">SAR Narrative Generator</div>
+        <div class="actions">
+          <a class="btn-secondary" href="dashboard.html">Dashboard</a>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="card">
+          <h3>Audit Timeline</h3>
+          <div id="timeline" class="timeline"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { getAudit } from "./api.js";
+
+      if (!sessionStorage.getItem("jwt_token")) {
+        window.location.href = "index.html";
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const caseId = params.get("case_id");
+      const timeline = document.getElementById("timeline");
+
+      if (!caseId) {
+        alert("Missing case_id query parameter");
+        window.location.href = "dashboard.html";
+      }
+
+      function eventClass(type) {
+        const t = (type || "").toUpperCase();
+        if (t.includes("INGEST")) return "event-ingestion";
+        if (t.includes("RULE")) return "event-rule";
+        if (t.includes("RETRIEVAL")) return "event-retrieval";
+        if (t.includes("GENERATION") || t.includes("LLM")) return "event-generation";
+        if (t.includes("VALIDATION")) return "event-validation";
+        if (t.includes("ANALYST") || t.includes("REVIEW")) return "event-analyst";
+        return "event-ingestion";
+      }
+
+      async function loadAudit() {
+        try {
+          const events = await getAudit(caseId);
+          timeline.innerHTML = events
+            .map(
+              (event) => `
+              <div class="timeline-event card ${eventClass(event.event_type)}">
+                <div><strong>${event.event_type}</strong></div>
+                <div style="color:#64748b; font-size:13px; margin:4px 0 8px;">${new Date(event.created_at).toLocaleString()}</div>
+                <details>
+                  <summary>View Payload</summary>
+                  <pre>${JSON.stringify(event.event_payload || {}, null, 2)}</pre>
+                </details>
+              </div>
+            `
+            )
+            .join("");
+        } catch (error) {
+          timeline.innerHTML = `<div class="error">Failed to load audit: ${error.message}</div>`;
+        }
+      }
+
+      await loadAudit();
+    </script>
+  </body>
+</html>

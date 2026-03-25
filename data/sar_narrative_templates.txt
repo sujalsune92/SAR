@@ -1,0 +1,172 @@
+SAR NARRATIVE WRITING GUIDE – STRUCTURING
+
+Use this guide to understand the structure and language pattern for structuring SAR narratives.
+Do not copy any figures, amounts, counts, or percentages from this guide.
+All figures must come from the evidence summary provided separately.
+
+Paragraph 1 — Introduction:
+Open by stating the filing institution is submitting a Suspicious Activity Report.
+Identify the account type and customer profile category only — no names or IDs.
+State the alert type that triggered the review.
+State the monitoring period duration in days — no specific dates.
+Example sentence pattern: "The filing institution is submitting this Suspicious Activity Report concerning a [account type] account held by the subject, a [profile type]. This review was initiated following a transaction monitoring alert for potential structuring activity during a [N]-day monitoring period."
+
+Paragraph 2 — Activity Description:
+Describe the cash deposit activity using only the figures provided in the evidence summary.
+State the total deposit count and total amount.
+State the destination country if an international transfer occurred.
+Do not mention branch counts, min/max deposit ranges, or any figure not in the evidence summary.
+Example sentence pattern: "During the monitoring period, the subject conducted [N] cash deposits totaling INR [amount]. Following the deposits, the subject transferred funds to a beneficiary in [destination country]."
+
+Paragraph 3 — Transaction Analysis:
+State the total count, total amount, time window, and average transaction amount.
+If customer financials are provided, state the deviation percentage using the exact figure given.
+If customer financials are not provided, state only the count, total, and average — nothing else.
+Do not write income or baseline figures unless explicitly provided.
+Example sentence pattern: "The total of [N] deposits over [N] days averaged INR [amount] per transaction. The subject's declared monthly income of INR [income] and average monthly deposits of INR [baseline] represent a [N]% increase over the historical baseline."
+
+Paragraph 4 — Reason for Suspicion:
+Name the typology explicitly: structuring.
+Explain that the pattern involves deliberately splitting amounts below the reporting threshold.
+Reference the high-risk jurisdiction if AML-006 was triggered.
+Reference profile inconsistency if AML-005 was triggered.
+Do not add indicators or behaviors not present in the evidence summary.
+Example sentence pattern: "The transaction pattern is consistent with the AML typology of structuring — deliberately splitting a large sum into sub-threshold deposits to evade regulatory reporting. The subject's profile does not support the observed activity. The subsequent transfer to [country], a FATF high-risk jurisdiction, further heightens the concern."
+
+Paragraph 5 — Conclusion:
+State the institution is filing the SAR.
+Reference PMLA Section 12 for Indian cases or BSA/AML for US cases.
+State the account is under enhanced monitoring.
+Nothing else — no recommendations, no next steps.
+Example sentence pattern: "Based on the analysis above, the filing institution has determined that the activity is suspicious and is filing this SAR in accordance with PMLA Section 12. The account has been placed under enhanced monitoring."
+
+---
+
+SAR NARRATIVE WRITING GUIDE – OFFSHORE TRANSFERS
+
+Use this guide to understand the structure and language pattern for offshore transfer SAR narratives.
+Do not copy any figures, amounts, counts, or percentages from this guide.
+All figures must come from the evidence summary provided separately.
+
+Paragraph 1 — Introduction:
+State the filing institution is submitting a SAR.
+Identify account type and customer profile only.
+State the offshore transfer alert type and monitoring period duration.
+
+Paragraph 2 — Activity Description:
+Describe the outbound international transfers using only figures from the evidence summary.
+State total transfer count, total amount, and destination country.
+Note absence of documentation only if it was flagged in the evidence summary.
+
+Paragraph 3 — Transaction Analysis:
+State total transfer count, total amount, and time window.
+If customer financials are provided, state the deviation.
+If not provided, write only the count, total, and time window.
+
+Paragraph 4 — Reason for Suspicion:
+Name the typology: offshore transfers.
+Reference the high-risk jurisdiction by country name.
+Reference profile inconsistency if triggered.
+Reference absence of documentation if flagged.
+
+Paragraph 5 — Conclusion:
+State the institution is filing the SAR under PMLA Section 12 or BSA/AML.
+State the account is under enhanced monitoring.
+
+---
+
+SAR NARRATIVE WRITING GUIDE – LAYERING
+
+Use this guide to understand the structure and language pattern for layering SAR narratives.
+Do not copy any figures, amounts, counts, or percentages from this guide.
+All figures must come from the evidence summary provided separately.
+
+Paragraph 1 — Introduction:
+State the filing institution is submitting a SAR.
+Identify account type and customer profile only.
+State the layering alert type and monitoring period duration.
+
+Paragraph 2 — Activity Description:
+Describe inbound transfers — count and total amount.
+Describe rapid outbound transfers — count, total amount, destination.
+Note the near-zero residual balance if triggered.
+
+Paragraph 3 — Transaction Analysis:
+State inbound count and total, outbound count and total.
+State the turnaround time between receipt and disbursement if provided.
+State residual balance if provided.
+
+Paragraph 4 — Reason for Suspicion:
+Name the typology: layering.
+Explain the multi-hop transfer pattern.
+Reference high-risk jurisdictions if triggered.
+
+Paragraph 5 — Conclusion:
+State the institution is filing the SAR under PMLA Section 12 or BSA/AML.
+State the account is under enhanced monitoring.
+
+---
+
+SAR NARRATIVE WRITING GUIDE – SMURFING
+
+Use this guide to understand the structure and language pattern for smurfing SAR narratives.
+Do not copy any figures, amounts, counts, or percentages from this guide.
+All figures must come from the evidence summary provided separately.
+
+Paragraph 1 — Introduction:
+State the filing institution is submitting a SAR.
+Identify account type and customer profile only.
+State the smurfing alert type and monitoring period duration.
+
+Paragraph 2 — Activity Description:
+Describe the cash deposit activity — total count, total amount, time window.
+Mention destination country if international transfer occurred.
+Do not mention branch counts or min/max ranges unless explicitly provided.
+
+Paragraph 3 — Transaction Analysis:
+State total count, total amount, average amount.
+If customer financials are provided, state the deviation percentage.
+If not provided, omit income and baseline comparison entirely.
+
+Paragraph 4 — Reason for Suspicion:
+Name the typology: smurfing.
+Explain the sub-threshold deposit aggregation pattern.
+Reference high-risk jurisdiction if triggered.
+Reference profile inconsistency if triggered.
+
+Paragraph 5 — Conclusion:
+State the institution is filing the SAR under PMLA Section 12 or BSA/AML.
+State the account is under enhanced monitoring.
+
+---
+
+SAR NARRATIVE WRITING GUIDE – RAPID MOVEMENT OF FUNDS
+
+Use this guide to understand the structure and language pattern for rapid movement SAR narratives.
+Do not copy any figures, amounts, counts, or percentages from this guide.
+All figures must come from the evidence summary provided separately.
+
+Paragraph 1 — Introduction:
+State the filing institution is submitting a SAR.
+Identify account type and customer profile only.
+State the rapid movement alert type and monitoring period duration.
+
+Paragraph 2 — Activity Description:
+Describe inbound transfers and rapid outbound transfers.
+State destination country if international.
+Note near-zero residual balance pattern.
+
+Paragraph 3 — Transaction Analysis:
+State inbound and outbound totals and counts.
+State turnaround time if provided.
+State residual balance if provided.
+If income is provided, state the deviation.
+
+Paragraph 4 — Reason for Suspicion:
+Name the typology: rapid movement of funds.
+Explain the pass-through conduit pattern.
+Reference high-risk jurisdiction if triggered.
+
+Paragraph 5 — Conclusion:
+State the institution is filing the SAR under PMLA Section 12 or BSA/AML.
+State the account is under enhanced monitoring.

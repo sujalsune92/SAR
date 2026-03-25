@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Case Review | SAR Narrative Generator</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="navbar">
+        <div class="nav-title">SAR Narrative Generator</div>
+        <div class="actions">
+          <a class="btn-secondary" href="dashboard.html">Dashboard</a>
+          <a class="btn-warning" id="auditLink" href="#">Audit</a>
+        </div>
+      </div>
+
+      <div class="container">
+        <div id="headerCard" class="card"></div>
+
+        <div class="review-layout">
+          <div class="card">
+            <h3>Triggered Rules</h3>
+            <div id="rulesContainer"></div>
+          </div>
+
+          <div class="card">
+            <h3>SAR Narrative Sections</h3>
+            <label>Background</label>
+            <div id="sec-background" class="section-editor" contenteditable="true"></div>
+            <label>Transaction Summary</label>
+            <div id="sec-transactions" class="section-editor" contenteditable="true"></div>
+            <label>Typology</label>
+            <div id="sec-typology" class="section-editor" contenteditable="true"></div>
+            <label>Evidence</label>
+            <div id="sec-evidence" class="section-editor" contenteditable="true"></div>
+            <label>Conclusion</label>
+            <div id="sec-conclusion" class="section-editor" contenteditable="true"></div>
+          </div>
+        </div>
+
+        <div id="validationPanel" class="card validation-panel">
+          <h3>Narrative Quality Checks</h3>
+          <div id="validationChecks"></div>
+        </div>
+
+        <div id="validationBanner" class="validation-banner" style="display: none;"></div>
+
+        <div class="bottom-bar card">
+          <div class="form-group">
+            <label for="comment">Mandatory Comment (10+ characters)</label>
+            <textarea id="comment" rows="3"></textarea>
+          </div>
+          <div class="actions">
+            <button id="approveBtn" class="btn-success" disabled>Approve</button>
+            <button id="rejectBtn" class="btn-danger" disabled>Reject</button>
+            <button id="replayBtn" class="btn-warning">Replay</button>
+          </div>
+          <div id="resultMessage"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="replayModal" class="modal">
+      <div class="modal-content">
+        <div class="actions" style="justify-content: space-between; margin-bottom: 8px">
+          <h3 style="margin: 0">Replay Diff</h3>
+          <button id="closeModal" class="btn-secondary">Close</button>
+        </div>
+        <pre id="replayContent"></pre>
+      </div>
+    </div>
+
+    <script type="module">
+      import { getCase, reviewCase, replayCase } from "./api.js";
+
+      if (!sessionStorage.getItem("jwt_token")) {
+        window.location.href = "index.html";
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const caseId = params.get("case_id");
+
+      const headerCard = document.getElementById("headerCard");
+      const rulesContainer = document.getElementById("rulesContainer");
+      const commentEl = document.getElementById("comment");
+      const approveBtn = document.getElementById("approveBtn");
+      const rejectBtn = document.getElementById("rejectBtn");
+      const replayBtn = document.getElementById("replayBtn");
+      const resultMessage = document.getElementById("resultMessage");
+      const replayModal = document.getElementById("replayModal");
+      const replayContent = document.getElementById("replayContent");
+      const closeModal = document.getElementById("closeModal");
+      const auditLink = document.getElementById("auditLink");
+      const validationPanel = document.getElementById("validationPanel");
+      const validationChecks = document.getElementById("validationChecks");
+      const validationBanner = document.getElementById("validationBanner");
+
+      if (!caseId) {
+        alert("Missing case_id query parameter");
+        window.location.href = "dashboard.html";
+      }
+
+      auditLink.href = `audit.html?case_id=${encodeURIComponent(caseId)}`;
+
+      let sentenceScores = [];
+
+      function splitIntoFiveSections(text) {
+        const parts = text.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+        while (parts.length < 5) {
+          parts.push("");
+        }
+        return parts.slice(0, 5);
+      }
+
+      function sentenceClass(score) {
+        if (score >= 0.7) return "sentence-green";
+        if (score >= 0.4) return "sentence-amber";
+        return "sentence-red";
+      }
+
+      function applySentenceStyling(sectionEl, paragraphText) {
+        const sentences = paragraphText.split(/(?<=[.!?])\s+/).filter(Boolean);
+        const html = sentences
+          .map((sentence) => {
+            const match = sentenceScores.find((item) => item.sentence.trim() === sentence.trim());
+            const score = match ? match.explainability_score : 0.5;
+            return `<span class="${sentenceClass(score)}">${sentence}</span>`;
+          })
+          .join(" ");
+        sectionEl.innerHTML = html || "";
+      }
+
+      function readNarrative() {
+        const ids = ["background", "transactions", "typology", "evidence", "conclusion"];
+        return ids.map((id) => document.getElementById(`sec-${id}`).innerText.trim()).join("\n\n").trim();
+      }
+
+      function toggleButtons() {
+        const valid = commentEl.value.trim().length >= 10;
+        approveBtn.disabled = !valid;
+        rejectBtn.disabled = !valid;
+      }
+
+      function displayValidationChecks(checks) {
+        if (!checks || checks.length === 0) {
+          validationPanel.style.display = "none";
+          validationBanner.style.display = "none";
+          return;
+        }
+
+        validationPanel.style.display = "block";
+        
+        // Render check items
+        validationChecks.innerHTML = checks
+          .map((check) => {
+            const checkName = (check.name || "")
+              .replace(/_/g, " ")
+              .replace(/\b\w/g, (char) => char.toUpperCase());
+            const symbol = check.passed ? "✓" : "✗";
+            const resultClass = check.passed ? "passed" : "failed";
+            return `
+              <div class="validation-check">
+                <div class="validation-check-name">${checkName}</div>
+                <div class="validation-check-result ${resultClass}">${symbol}</div>
+              </div>
+            `;
+          })
+          .join("");
+
+        // Show appropriate banner
+        const anyFailed = checks.some((c) => !c.passed);
+        if (anyFailed) {
+          validationBanner.className = "validation-banner warning";
+          validationBanner.textContent =
+            "Warning: some quality checks failed. Review before approving.";
+          validationBanner.style.display = "block";
+        } else {
+          validationBanner.className = "validation-banner success";
+          validationBanner.textContent = "All quality checks passed.";
+          validationBanner.style.display = "block";
+        }
+      }
+
+      async function submitReview(decision) {
+        try {
+          const narrative = readNarrative();
+          await reviewCase(caseId, decision, commentEl.value.trim(), narrative);
+          resultMessage.className = "success";
+          resultMessage.textContent = `Review submitted: ${decision}`;
+        } catch (error) {
+          resultMessage.className = "error";
+          resultMessage.textContent = `Review failed: ${error.message}`;
+        }
+      }
+
+      function buildReplayDiff(originalNarrative, replayedNarrative) {
+        const originalLines = (originalNarrative || "").split("\n");
+        const replayedLines = (replayedNarrative || "").split("\n");
+        const maxLen = Math.max(originalLines.length, replayedLines.length);
+        const rows = [];
+
+        for (let i = 0; i < maxLen; i += 1) {
+          const left = originalLines[i] || "";
+          const right = replayedLines[i] || "";
+          if (left === right) {
+            rows.push(`  ${left}`);
+          } else {
+            if (left) rows.push(`- ${left}`);
+            if (right) rows.push(`+ ${right}`);
+          }
+        }
+        return rows.join("\n");
+      }
+
+      async function doReplay() {
+        try {
+          const replay = await replayCase(caseId);
+          const diff = buildReplayDiff(replay.original_narrative, replay.replayed_narrative);
+          replayContent.textContent = [
+            `Replay Matches Original: ${replay.replay_matches_original}`,
+            "",
+            "Diff:",
+            diff || "No textual differences detected.",
+          ].join("\n");
+          replayModal.classList.add("show");
+        } catch (error) {
+          alert(`Replay failed: ${error.message}`);
+        }
+      }
+
+      closeModal.addEventListener("click", () => replayModal.classList.remove("show"));
+      commentEl.addEventListener("input", toggleButtons);
+      approveBtn.addEventListener("click", () => submitReview("APPROVE"));
+      rejectBtn.addEventListener("click", () => submitReview("REJECT"));
+      replayBtn.addEventListener("click", doReplay);
+
+      async function loadCaseDetail() {
+        try {
+          const detail = await getCase(caseId);
+          const finalSar = detail.final_sar || {};
+          sentenceScores = finalSar.sentence_traceability || [];
+
+          headerCard.innerHTML = `
+            <h3 style="margin-top: 0">Case ${detail.case_id}</h3>
+            <div class="actions">
+              <span class="badge ${(detail.risk_level || "LOW") === "HIGH" ? "risk-high" : (detail.risk_level === "MEDIUM" ? "risk-medium" : "risk-low")}">${detail.risk_level || "LOW"}</span>
+              <span>Status: ${detail.status}</span>
+            </div>
+          `;
+
+          const rules = ((detail.evidence_pack || {}).rule_summary) || [];
+          rulesContainer.innerHTML = rules
+            .map((rule) => {
+              const pct = Math.round((rule.confidence || 0) * 100);
+              return `
+                <div class="card rule-card">
+                  <div><strong>${rule.rule_id}</strong> - ${rule.rule_name}</div>
+                  <div class="progress"><div class="progress-bar" style="width:${pct}%"></div></div>
+                  <div>Confidence: ${pct}%</div>
+                  <div>${rule.observation || ""}</div>
+                </div>
+              `;
+            })
+            .join("");
+
+          const sections = splitIntoFiveSections(finalSar.narrative || "");
+          applySentenceStyling(document.getElementById("sec-background"), sections[0]);
+          applySentenceStyling(document.getElementById("sec-transactions"), sections[1]);
+          applySentenceStyling(document.getElementById("sec-typology"), sections[2]);
+          applySentenceStyling(document.getElementById("sec-evidence"), sections[3]);
+          applySentenceStyling(document.getElementById("sec-conclusion"), sections[4]);
+
+          const validationPayload = detail.validation_payload || {};
+          const checks = validationPayload.checks || [];
+          displayValidationChecks(checks);
+        } catch (error) {
+          alert(`Failed to load case: ${error.message}`);
+        }
+      }
+
+      await loadCaseDetail();
+      toggleButtons();
+    </script>
+  </body>
+</html>

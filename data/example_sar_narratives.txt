@@ -1,0 +1,67 @@
+EXAMPLE SAR NARRATIVE – STRUCTURING
+
+The filing institution is submitting this Suspicious Activity Report concerning a savings account held by the subject, a retail business owner. This review was initiated following a transaction monitoring alert for potential structuring activity during a seven-day monitoring period.
+
+During the monitoring period, the subject conducted multiple cash deposits totaling a large aggregate amount across a short time window. Each individual deposit fell below the applicable regulatory reporting threshold. Following the completion of the deposit activity, the subject initiated a single international wire transfer directing the aggregated funds to a beneficiary account at a foreign bank in a high-risk jurisdiction. No trade invoices, contracts, or supporting documentation were provided for either the deposits or the outbound transfer.
+
+The total number of deposits over the monitoring period significantly exceeded the subject's historical monthly average transaction count. The total deposited amount represented a substantial percentage increase over the subject's documented twelve-month average monthly deposits. The average individual deposit amount fell consistently below the regulatory reporting threshold, which is characteristic of deliberate structuring behavior.
+
+The transaction pattern is consistent with the AML typology of structuring — deliberately breaking a large sum into sub-threshold deposits to evade regulatory reporting obligations. The subject's declared occupation and income profile do not support the volume or frequency of the observed deposits. The subsequent international wire transfer to a FATF high-risk jurisdiction compounded the concern by suggesting the aggregated funds were moved offshore shortly after being assembled through the structured deposit activity.
+
+Based on the analysis above, the filing institution has determined that the activity is suspicious and is filing this SAR in accordance with PMLA Section 12. The account has been placed under enhanced monitoring and the customer relationship is under review.
+
+---
+
+EXAMPLE SAR NARRATIVE – OFFSHORE TRANSFERS
+
+The filing institution is submitting this Suspicious Activity Report concerning a savings account held by the subject, a salaried professional. This review was initiated following a transaction monitoring alert for large international wire transfers to an offshore high-risk jurisdiction during the monitoring period.
+
+During the monitoring period, the subject initiated multiple outbound international wire transfers directing a substantial total amount to beneficiary accounts at foreign banks located in a financial secrecy jurisdiction. The subject's account had no prior international transfer history during the preceding review period. When contacted by the relationship manager, the subject stated the transfers were for investment purposes but declined to provide any contracts, prospectuses, or beneficiary identification details.
+
+The total amount transferred during the monitoring period was substantially inconsistent with the subject's declared monthly income and known account profile. The destination jurisdiction is identified as a financial secrecy jurisdiction on the institution's internal high-risk country list. No trade documents, investment agreements, or purpose-of-transfer letters were provided to justify the outbound transfers.
+
+The transfers are inconsistent with the subject's known profile and established account history. The absence of supporting documentation, combined with the destination to a high-risk offshore jurisdiction, raises concerns regarding the potential movement of illicit proceeds through the international financial system. The pattern is consistent with the AML typology of offshore transfers used to conceal the origin or destination of funds.
+
+Based on the analysis above, the filing institution has determined that the activity is suspicious and is filing this SAR in accordance with PMLA Section 12. The account has been placed under enhanced monitoring.
+
+---
+
+EXAMPLE SAR NARRATIVE – RAPID MOVEMENT OF FUNDS
+
+The filing institution is submitting this Suspicious Activity Report concerning a current account held by the subject, a sole proprietor. This review was initiated following a transaction monitoring alert for rapid inflow and outflow activity during a short monitoring period.
+
+During the monitoring period, the account received multiple incoming wire transfers from different domestic corporate accounts totaling a substantial aggregate amount. Within a short time window following each receipt, the subject initiated corresponding outbound wire transfers of nearly equivalent amounts to beneficiaries in international high-risk jurisdictions. Following each outflow cycle, the account balance returned to a near-zero residual amount, indicating the account was functioning as a pass-through conduit rather than a repository of legitimate income.
+
+The total inbound amount received during the monitoring period was substantially inconsistent with the subject's declared annual revenue. None of the originating companies had a documented business relationship with the subject on file. The rapid turnaround between receipt and disbursement, combined with the near-zero residual balance after each cycle, indicated systematic pass-through fund movement.
+
+The pattern is consistent with the AML typology of rapid movement of funds, wherein an account functions as a conduit to move funds quickly through the financial system while obscuring their origin and destination. The use of multiple domestic originating accounts, combined with rapid international disbursement to high-risk jurisdictions, heightens the concern of coordinated money laundering activity.
+
+Based on the analysis above, the filing institution has determined that the activity is suspicious and is filing this SAR in accordance with PMLA Section 12. The account has been placed under enhanced monitoring and the subject's business relationships are under review.
+
+---
+
+EXAMPLE SAR NARRATIVE – SMURFING
+
+The filing institution is submitting this Suspicious Activity Report concerning a savings account held by the subject, a student. This review was initiated following a transaction monitoring alert for high-volume cash deposit activity during a short monitoring period.
+
+During the monitoring period, the subject conducted a high number of cash deposits totaling an amount substantially inconsistent with the expected activity for the account profile. Each individual deposit fell below the applicable reporting threshold. The aggregate deposit total over the monitoring period represented a significant percentage increase over the subject's historical monthly deposit baseline. Following the deposit activity, the subject transferred the aggregated funds to a beneficiary account in a high-risk jurisdiction.
+
+The total transaction count over the monitoring period substantially exceeded the subject's historical monthly transaction volume. The average individual deposit amount was below the regulatory reporting threshold, which is consistent with deliberate sub-threshold splitting to evade detection. The subject's declared income and account profile do not support the observed volume and frequency of activity.
+
+The activity is consistent with the AML typology of smurfing — the use of multiple sub-threshold cash deposits to aggregate a large sum while evading regulatory reporting requirements. The subject's declared income and historical account behavior do not provide a legitimate explanation for the observed volume of deposits. The subsequent transfer of the aggregated funds to a FATF high-risk jurisdiction further heightened the concern.
+
+Based on the analysis above, the filing institution has determined that the activity is suspicious and is filing this SAR in accordance with PMLA Section 12. The account has been placed under enhanced monitoring.
+
+---
+
+EXAMPLE SAR NARRATIVE – LAYERING
+
+The filing institution is submitting this Suspicious Activity Report concerning a current account held by the subject, operating as a business entity. This review was initiated following a transaction monitoring alert for rapid multi-account fund transfer activity during the monitoring period.
+
+During the monitoring period, the subject account received multiple inbound wire transfers from domestic accounts with no documented business relationship to the account holder. Within a short time window following each receipt, the subject initiated corresponding outbound wire transfers splitting the received funds across multiple destination accounts at different financial institutions. The funds were subsequently forwarded through additional intermediary accounts before being directed to international high-risk jurisdictions.
+
+The total inbound and outbound amounts during the monitoring period were substantially inconsistent with the subject's declared business profile. The average turnaround time between receipt and disbursement was extremely short, and the residual account balance after each cycle was near zero. There was no apparent economic rationale for the multi-leg transfer structure.
+
+The fund flow pattern is consistent with the AML typology of layering — using multiple sequential transfers across different financial institutions and jurisdictions to create complex transaction layers and obscure the origin of funds. The involvement of multiple intermediary accounts, combined with the speed and volume of the transactions, is indicative of a coordinated effort to defeat audit trails.
+
+Based on the analysis above, the filing institution has determined that the activity is suspicious and is filing this SAR in accordance with PMLA Section 12. The account has been placed under enhanced monitoring and all related accounts have been flagged for review.
