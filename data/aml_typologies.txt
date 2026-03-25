@@ -1,141 +1,75 @@
-STRUCTURING TYPOLOGY
+TYPOLOGY — LAYERING VIA PASS-THROUGH ACCOUNTS
+FATF Reference: Typology Report 2023, Section 4.2
+---
+Layering is the second stage of the money laundering process, following placement of illicit funds into the financial system. The objective of layering is to create distance between the funds and their criminal origin through a series of financial transactions designed to obscure the audit trail and defeat investigative tracing.
 
-Description:
-Structuring, also known as smurfing or breaking, is a money laundering technique in which a customer deliberately breaks a large sum of money into smaller deposits or transactions, each below the regulatory reporting threshold. The purpose is to evade Currency Transaction Reports and avoid triggering transaction monitoring alerts. Structuring is a predicate offense under the Prevention of Money Laundering Act (PMLA) and the Bank Secrecy Act (BSA). Financial institutions are required to detect and report patterns of structured deposits regardless of whether any single deposit exceeds the threshold.
+Pass-through account layering involves the use of one or more domestic bank accounts as transit mechanisms. The account receives inbound transfers from multiple sources, aggregates them briefly, and then remits the consolidated balance outward — typically to an offshore or high-risk jurisdiction — within a short time window. The defining characteristic is the near-zero residual balance after each cycle: the account holds funds only transiently and retains no legitimate commercial purpose.
 
-Key Indicators:
-* Multiple cash deposits made in amounts just below the reporting threshold within a short time period.
-* Deposits made at different branch locations or ATMs within the same institution to avoid scrutiny by a single teller.
-* Customer has no documented source of income or business justification for the volume of cash deposits.
-* The aggregate deposit total over a rolling window significantly exceeds the customer's expected account activity.
-* Deposits are followed by immediate wire transfers, especially to high-risk jurisdictions.
+Key indicators of pass-through layering:
+Multiple inbound transfers received within a short window from dispersed domestic sources followed by consolidated outbound remittance. Residual account balance returning to near zero after each cycle. Outbound destination in a FATF high-risk or non-cooperative jurisdiction. No identifiable commercial or personal financial purpose for the observed fund flows. Transaction velocity substantially exceeding the account holder's declared profile. Individual transaction amounts sized below mandatory reporting thresholds.
 
-How to Write the SAR Narrative for Structuring:
-Paragraph 1: State the institution is filing a SAR. Identify account type and customer profile. Mention the alert type and monitoring period duration.
-Paragraph 2: Describe the cash deposits — total count, total amount, time window. Mention any subsequent international transfer and destination country.
-Paragraph 3: State total count, total amount, average amount, time window. If income and historical baseline are provided, state the percentage deviation.
-Paragraph 4: Reference the structuring typology by name. Explain that the pattern involves deliberately splitting amounts below the reporting threshold. Reference the high-risk jurisdiction if funds were transferred internationally.
-Paragraph 5: State the institution is filing the SAR and the account is under enhanced monitoring.
-
-Regulatory Concern:
-Regulators consider structuring inherently suspicious because the sole purpose of splitting transactions is to circumvent legal reporting obligations. Under the PMLA and BSA, structuring is itself a criminal offense even if the underlying funds are legitimate. Financial institutions that fail to detect and report structuring patterns face regulatory penalties, enforcement actions, and reputational risk.
+Regulatory significance: Pass-through layering via domestic accounts is a technique frequently associated with proceeds of organised crime, corruption, and terrorism financing. The involvement of FATF-listed jurisdictions elevates the risk classification and triggers mandatory enhanced due diligence obligations under PMLA KYC Guidelines.
 
 ---
+TYPOLOGY — STRUCTURING AND SMURFING
+FATF Reference: Typology Report 2023, Section 3.1 | FIU-IND Guideline Section 3.2
+---
+Structuring, also referred to as smurfing, is the deliberate division of a larger sum of funds into multiple smaller transactions, each individually sized to fall below a mandatory reporting threshold, with the intent of avoiding the automatic generation of Currency Transaction Reports or Suspicious Transaction Reports.
 
-LAYERING TYPOLOGY
+The reporting threshold in India under RBI Master Direction 2023 is INR 1,00,000 for cash transactions. Structuring occurs when a subject consistently sizes transactions to remain below this threshold, particularly when the aggregate value of the structured transactions, if combined, would have triggered mandatory reporting.
 
-Description:
-Layering is the second stage of the money laundering process. After illicit funds have been placed into the financial system, the launderer creates multiple layers of complex financial transactions to separate the proceeds from their illegal source. Layering typically involves wire transfers between multiple accounts at different financial institutions, rapid conversion between asset classes, and use of intermediary entities. The objective is to create a financial trail so complex that law enforcement cannot trace the money to its origin.
+Key indicators of structuring:
+Multiple transactions each individually below INR 1,00,000 (or applicable threshold). Consistent sizing in the 70-99% band of the threshold — transactions of INR 65,000 to INR 99,000 where none reaches INR 1,00,000. High frequency of transactions over a short period. Use of multiple channels, branches, or deposit locations to disperse the pattern. Aggregate transaction volume inconsistent with the account holder's declared income or business profile.
 
-Key Indicators:
-* Funds rapidly transferred between multiple accounts at the same or different institutions with no apparent economic rationale.
-* Sequential wire transfers involving intermediary accounts that serve no legitimate business purpose.
-* Conversion of deposits into monetary instruments such as cashier's checks or money orders, followed by redeposit into different accounts.
-* Use of correspondent banking relationships to move funds through multiple jurisdictions.
-* Transactions that do not match the stated business activity or customer profile.
+Below-threshold structuring sub-indicator: When the average transaction amount across a series falls within the 70-99% band of the reporting threshold, this is a primary indicator of deliberate threshold avoidance rather than coincidental transaction sizing.
 
-How to Write the SAR Narrative for Layering:
-Paragraph 1: State the institution is filing a SAR. Identify account type and customer profile. Mention layering alert type and monitoring period duration.
-Paragraph 2: Describe inbound transfers — total amount, source count, time window. Describe outbound transfers — total amount, destination count, time window.
-Paragraph 3: State total inbound count and amount, total outbound count and amount, turnaround time, and residual balance if provided.
-Paragraph 4: Reference the layering typology by name. Explain the multi-hop transfer pattern and how it obscures the origin of funds. Reference high-risk jurisdictions if applicable.
-Paragraph 5: State the institution is filing the SAR and the account is under enhanced monitoring.
-
-Regulatory Concern:
-Regulators consider layering a hallmark of sophisticated money laundering operations. The rapid movement and splitting of funds across multiple accounts is designed to overwhelm audit trails and transaction monitoring systems. Institutions must report layering patterns even when no single transaction individually appears suspicious.
+Regulatory significance: Structuring is explicitly prohibited under PMLA 2002. The FIU-IND requires financial institutions to file STRs when structuring indicators are detected regardless of whether any individual transaction meets the mandatory CTR threshold.
 
 ---
+TYPOLOGY — ROUND TRIPPING
+FATF Reference: Typology Report 2023, Section 5.3
+---
+Round tripping is an AML technique in which funds are transferred offshore and subsequently repatriated to the originating jurisdiction — or a related entity — under the guise of legitimate foreign investment, trade finance proceeds, or loan repayments. The technique is used to integrate funds of illicit origin into the formal financial system with an apparent legitimacy narrative.
 
-SMURFING TYPOLOGY
+The defining characteristic of round tripping is the circular flow: funds leave a domestic account bound for an offshore jurisdiction, are processed through one or more offshore intermediary entities, and return to the same or related domestic account as apparent foreign-origin receipts. The net economic effect is negligible; the purpose is regulatory laundering of the funds' origin.
 
-Description:
-Smurfing is a form of structuring in which multiple individuals deposit small amounts of cash or make small transactions on behalf of a single beneficiary. Each individual deposits an amount below the regulatory reporting threshold, and the aggregated deposits accumulate in one or more target accounts. Smurfing is commonly used in drug trafficking, corruption proceeds, and trade-based money laundering schemes. The use of multiple depositors makes it difficult for financial institutions to link the transactions to a coordinated effort.
-
-Key Indicators:
-* Multiple unrelated individuals making deposits into the same beneficiary account within a short time frame.
-* Depositors with no visible relationship to the account holder — no shared employment, family, or business affiliation.
-* Each deposit is below the reporting threshold, but the aggregate exceeds expected account activity.
-* Depositors appear to follow a coordinated schedule, depositing at similar times or on sequential days.
-* The beneficiary account rapidly moves funds out after the deposits are received.
-
-How to Write the SAR Narrative for Smurfing:
-Paragraph 1: State the institution is filing a SAR. Identify account type and customer profile. Mention the smurfing alert type and monitoring period duration.
-Paragraph 2: Describe the cash deposits — total count, total amount, time window. Mention destination if funds were subsequently transferred internationally.
-Paragraph 3: State total count, total amount, average amount. If income and historical baseline are provided, state the percentage deviation.
-Paragraph 4: Reference the smurfing typology by name. Explain that multiple depositors were used to aggregate sub-threshold amounts. Mention that depositors had no documented relationship with the account holder if that indicator was triggered.
-Paragraph 5: State the institution is filing the SAR and the account is under enhanced monitoring.
-
-Regulatory Concern:
-Smurfing is an attempt to defeat transaction monitoring through decentralization. Regulators expect institutions to implement analytics that aggregate deposits across multiple originators into a single beneficiary account. Failure to identify smurfing patterns can result in regulatory action and is viewed as a gap in the institution's AML controls.
+Key indicators of round tripping:
+Inbound international wire transfers from offshore corporate entities with no identifiable trade or investment relationship with the account holder. Outbound international transfers of equivalent or near-equivalent value to a different offshore entity, typically in a separate high-risk jurisdiction. Near-zero net change in account balance across the full monitoring period. No supporting trade documentation, invoices, or contracts corresponding to the fund flows. Involvement of jurisdictions with strong secrecy laws or low transparency standards. Account holder's declared business activity inconsistent in scale with the observed cross-border transaction values.
 
 ---
+TYPOLOGY — HIGH VELOCITY TRANSACTIONS
+RBI Reference: AML Guidelines — Velocity Check Parameters
+---
+High velocity transaction activity refers to a pattern in which the rate of transactions per day or per week substantially exceeds the thresholds established by the institution's risk-based monitoring framework, taking into account the account holder's declared profile and account type.
 
-RAPID MOVEMENT OF FUNDS TYPOLOGY
+Velocity is a primary indicator of layering activity because genuine commercial or personal financial activity rarely requires the execution of multiple daily transactions over an extended period. High velocity in conjunction with cross-border outbound transfers or sub-threshold transaction sizing significantly elevates the AML risk classification.
 
-Description:
-Rapid movement of funds, also known as flow-through activity, occurs when an account receives substantial deposits or transfers and the funds are moved out almost immediately, leaving near-zero balances. The account acts as a conduit or pass-through, with no funds retained for legitimate business or personal use. This pattern is associated with money laundering, terrorist financing, and fraud schemes. It is especially suspicious when the activity is inconsistent with the customer's known profile.
+Key indicators:
+Transaction per day rate exceeding institutional velocity threshold (typically 5 transactions per day for individual accounts). Transaction velocity inconsistent with account type — savings accounts have lower expected velocity than current accounts. Velocity increase representing a multiple of the account holder's historical baseline rate. Velocity concentrated in a narrow time window rather than distributed across a normal calendar pattern.
 
-Key Indicators:
-* Large inbound transfers followed by outbound transfers of equivalent amounts within a short time window.
-* Account balance consistently returns to near zero after each inflow-outflow cycle.
-* Multiple inflow-outflow cycles within a single month that exceed the customer's documented income or business volume.
-* Outgoing transfers are directed to different beneficiaries each time, or to high-risk jurisdictions.
-* No evidence of legitimate business invoices, contracts, or supporting documentation.
-
-How to Write the SAR Narrative for Rapid Movement of Funds:
-Paragraph 1: State the institution is filing a SAR. Identify account type and customer profile. Mention the rapid movement alert type and monitoring period duration.
-Paragraph 2: Describe inbound transfers and near-immediate outbound transfers. Mention destination country if international. Note the near-zero residual balance pattern.
-Paragraph 3: State total inbound and outbound amounts and counts. State the turnaround time between receipt and disbursement. If income is provided, state the deviation.
-Paragraph 4: Reference the rapid movement of funds typology by name. Explain the pass-through conduit pattern. Reference high-risk jurisdictions if applicable.
-Paragraph 5: State the institution is filing the SAR and the account is under enhanced monitoring.
-
-Regulatory Concern:
-Flow-through accounts are a primary vehicle for moving illicit funds internationally. Regulators view repeated inflow-outflow cycles with near-zero residual balances as strong indicators of money laundering. Institutions must monitor for patterns where accounts serve as pass-through conduits rather than repositories of legitimate income.
+RBI threshold reference: The RBI AML Guidelines establish a velocity monitoring threshold of 5 transactions per day as a base alert parameter for individual account profiles. Accounts exceeding this threshold require enhanced scrutiny.
 
 ---
+TYPOLOGY — PROFILE INCONSISTENCY
+PMLA Reference: KYC Guidelines — Customer Risk Profiling
+---
+Profile inconsistency arises when the transaction activity observed in an account materially exceeds what would be expected for a customer of the account holder's declared occupational, income, or business profile. It is a cross-cutting risk indicator that amplifies the significance of other AML typology triggers.
 
-ROUND TRIPPING TYPOLOGY
+Customer profile benchmarks used in risk assessment:
+Retail business owner — expected maximum monthly transaction volume INR 20,00,000
+Salaried employee — expected maximum monthly transaction volume INR 5,00,000
+Student — expected maximum monthly transaction volume INR 1,00,000
+Retired individual — expected maximum monthly transaction volume INR 3,00,000
 
-Description:
-Round tripping involves sending money abroad and bringing it back into the domestic financial system through a different channel to disguise its origin. Funds may be wired to a foreign entity and then repatriated as a foreign direct investment, trade payment, or loan disbursement. This technique is used to generate false documentation that gives illicit money a veneer of legitimacy. Round tripping is prevalent in trade-based money laundering and fraudulent investment schemes.
-
-Key Indicators:
-* Outbound wire transfers to a foreign entity followed by inbound transfers of similar amounts from a related entity in the same or nearby jurisdiction.
-* Investment or loan receipts from foreign entities that share beneficial ownership or directorship with the originating domestic entity.
-* Use of shell companies or special purpose vehicles in tax-haven jurisdictions as intermediaries.
-* Documentation such as invoices or loan agreements that appear fabricated or lack supporting detail.
-* The net economic effect of the transaction cycle is zero, suggesting no genuine trade or investment occurred.
-
-How to Write the SAR Narrative for Round Tripping:
-Paragraph 1: State the institution is filing a SAR. Identify account type and customer profile. Mention the round tripping alert type and monitoring period duration.
-Paragraph 2: Describe the outbound transfer and subsequent inbound transfer. Note the similar amounts and short time gap between the two directions.
-Paragraph 3: State outbound amount, inbound amount, time gap between them. Note any connection between the sending and receiving foreign entities.
-Paragraph 4: Reference the round tripping typology by name. Explain the circular fund flow and absence of genuine economic activity.
-Paragraph 5: State the institution is filing the SAR and the account is under enhanced monitoring.
-
-Regulatory Concern:
-Regulators consider round tripping a significant money laundering risk because it exploits international financial channels and creates false audit trails. Tax authorities and AML regulators require institutions to scrutinize circular fund flows between related domestic and foreign entities.
+When observed transaction volumes exceed these profile benchmarks, the institution is required to initiate enhanced due diligence including source of funds verification. Profile inconsistency combined with other AML indicators such as jurisdiction risk, velocity, or structuring elevates the overall risk score to HIGH and requires mandatory SAR filing.
 
 ---
+TYPOLOGY — RAPID FUND MOVEMENT
+FATF Reference: Recommendation 16 — Wire Transfers
+---
+Rapid fund movement describes a pattern in which funds received into an account are remitted outward, typically internationally, within a very short time window — typically 72 hours or fewer — from the time of receipt. The brevity of the holding period eliminates any plausible commercial or investment purpose for the funds remaining in the account and is a primary indicator of layering activity.
 
-OFFSHORE TRANSFERS TYPOLOGY
+FATF Recommendation 16 specifically identifies rapid international wire transfers as a high-risk indicator requiring enhanced due diligence by correspondent and receiving financial institutions. The combination of rapid movement and a high-risk destination jurisdiction represents one of the highest-risk transaction patterns in the AML risk framework.
 
-Description:
-Offshore transfers involve moving funds from a domestic bank account to an account held at a financial institution in a foreign jurisdiction, particularly jurisdictions with strict bank secrecy laws, minimal regulatory oversight, or limited cooperation with international law enforcement. Offshore transfers are a core technique in the placement and layering stages of money laundering. They become suspicious when they lack a documented business rationale, involve high-risk jurisdictions, or are inconsistent with the customer's profile.
-
-Key Indicators:
-* Large international wire transfers to countries on the FATF grey list or black list with no documented trade or business relationship.
-* Transfers to shell companies or nominee accounts in financial secrecy jurisdictions.
-* Customer lacks a documented economic reason for cross-border transactions.
-* Multiple transfers to different beneficiaries in the same high-risk jurisdiction within a short period.
-* Customer resists providing supporting documentation for the transfer.
-
-How to Write the SAR Narrative for Offshore Transfers:
-Paragraph 1: State the institution is filing a SAR. Identify account type and customer profile. Mention the offshore transfer alert type and monitoring period duration.
-Paragraph 2: Describe the outbound international transfers — count, total amount, destination country. Note absence of documentation if applicable.
-Paragraph 3: State total transfer count, total amount, time window. If income is provided, state the deviation from expected profile activity.
-Paragraph 4: Reference the offshore transfers typology by name. Explain the high-risk jurisdiction concern. Note the absence of supporting documentation.
-Paragraph 5: State the institution is filing the SAR and the account is under enhanced monitoring.
-
-Regulatory Concern:
-Offshore transfers to high-risk or non-cooperative jurisdictions are a key focus area for FATF, FinCEN, and FIU-India. Regulators expect enhanced due diligence including obtaining purpose-of-transfer documentation, verifying the beneficiary relationship, and screening against sanctions lists.
+Key indicators:
+Funds received and remitted internationally within 72 hours (3 days) of receipt. No interim commercial activity, expenditure, or investment suggesting the funds served a legitimate purpose during the holding period. Outbound destination in a FATF high-risk or non-cooperative jurisdiction. Pattern repeated across multiple cycles within the monitoring period. Individual transaction amounts showing sub-threshold sizing consistent with structuring.

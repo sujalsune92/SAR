@@ -1,21 +1,21 @@
 {
-  "alert_id": "ALERT_9934",
-  "customer_id": "CUST_112",
-  "customer_name": "Mohammed Farooq",
-  "account_type": "Savings",
-  "customer_profile": "Student",
-  "alert_type": "HAWALA",
+  "alert_id": "ALERT_7821",
+  "customer_id": "CUST_445",
+  "customer_name": "Priya Sharma",
+  "account_type": "Current",
+  "customer_profile": "Salaried employee",
+  "alert_type": "Layering",
   "transactions": {
-    "transaction_count": 45,
-    "total_amount": 875000,
-    "time_window_days": 4,
-    "destination_country": "MYANMAR",
+    "transaction_count": 28,
+    "total_amount": 1450000,
+    "time_window_days": 3,
+    "destination_country": "UAE",
     "reporting_threshold": 1000000
   },
   "customer_financials": {
-    "declared_monthly_income": 15000,
-    "avg_monthly_deposits_12m": 12000,
-    "historical_baseline_txn_count": 3
+    "declared_monthly_income": 45000,
+    "avg_monthly_deposits_12m": 38000,
+    "historical_baseline_txn_count": 4
   },
-  "pattern": "cash deposit multiple accounts structuring"
+  "pattern": "multiple accounts round trip layering structuring"
 }

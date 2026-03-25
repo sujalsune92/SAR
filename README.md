@@ -67,7 +67,8 @@ barclays/
 |   |-- ingestion_pipeline.py
 |   `-- vector_db/
 |-- scripts/
-|   `-- ensure_local_postgres.py
+|   |-- ensure_local_postgres.py
+|   `-- calculate_llm_tokens.py
 |-- tests/
 |   `-- test_backend.py
 `-- vector_db/
@@ -200,6 +201,26 @@ Start-Process powershell -ArgumentList '-NoExit', '-Command', 'conda activate ra
 Push-Location frontend
 python -m http.server 8080
 Pop-Location
+```
+
+## Token Usage Report (LLM)
+
+Use the helper script to calculate token usage across the full RAG prompt path (query, retrieved docs, prompt estimates, and Ollama runtime counts):
+
+```bash
+python scripts/calculate_llm_tokens.py --model mistral:7b
+```
+
+Optional: save output JSON
+
+```bash
+python scripts/calculate_llm_tokens.py --model mistral:7b --out reports/token_report.json
+```
+
+Current default generation options in the prompt bundle:
+
+```json
+{"num_ctx": 3072, "temperature": 0.2, "top_p": 0.9}
 ```
 
 ## Default Login Credentials

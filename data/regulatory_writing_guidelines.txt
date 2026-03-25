@@ -1,93 +1,83 @@
-SAR WRITING GUIDELINE – CLARITY
+GUIDELINE — SAR NARRATIVE SENTENCE STARTERS AND WRITING PATTERNS
+Source: Internal Compliance Writing Reference
+---
+PARAGRAPH 1 — BACKGROUND AND FILING CONTEXT
 
-Description:
-SAR narratives must be written in clear, concise, and factual language. The purpose of a SAR narrative is to communicate suspicious activity to regulatory authorities such as FinCEN, FIU-India, or the National Crime Agency. The narrative must be self-explanatory such that the reader can understand the suspicious activity without accessing internal bank systems. Ambiguous or poorly written narratives delay investigations and reduce the effectiveness of law enforcement response. Every statement should be supported by observable transaction data, system alerts, or documented customer behavior.
+Approved opening sentences:
+The filing institution is submitting this Suspicious Activity Report in respect of a [account type] account held by [customer profile] at this institution.
+The filing institution files this Suspicious Activity Report concerning a [account type] account flagged by the institution's automated transaction monitoring system.
+This Suspicious Activity Report is submitted by the filing institution following a review of anomalous transaction activity identified in a [account type] account during the monitoring period.
+The filing institution has determined, following a preliminary investigation, that transaction activity observed in a [account type] account during the period under review meets the criteria for SAR submission under PMLA Section 12.
 
-Best Practices:
-* Use plain, factual language that avoids jargon, abbreviations, or internal system codes unless defined.
-* Reference specific transaction amounts, dates, counterparties, and account numbers to anchor each claim.
-* Maintain a chronological flow of events so the reader can follow the progression of suspicious activity.
-* Avoid speculative language such as "the customer may be laundering money." Instead, describe the observable behavior and state why it deviates from expected norms.
-* Define all monetary amounts with currency identifiers (e.g., INR 50,00,000 or USD 100,000).
-* Use active voice to describe the subject's actions (e.g., "The customer deposited" rather than "deposits were made").
+Approved context phrases:
+...was identified through the institution's rule-based transaction surveillance system...
+...was flagged following the detection of anomalous inbound and outbound transfer activity...
+...the account was identified as exhibiting transaction patterns inconsistent with the account holder's declared profile...
+...the institution's automated monitoring system generated an alert for potential [typology] activity...
+...the review was initiated following a [typology] alert generated during a [N]-day monitoring period...
 
 ---
+PARAGRAPH 2 — TRANSACTION SUMMARY
 
-SAR WRITING GUIDELINE – OBJECTIVITY
+Approved transaction description phrases:
+During the monitoring period, the account received [N] inbound fund transfers aggregating to INR [amount].
+The account received [N] separate [cash/wire/NEFT/RTGS] transfers from [N] distinct [domestic/international] sources, with a combined value of INR [amount].
+Within [N] hours/days of each inbound receipt, the account holder initiated corresponding outbound [wire/NEFT/IMPS] transfers directing the consolidated funds to [destination].
+The residual account balance returned to near zero following each completed outbound cycle, indicating that the account was being used as a pass-through conduit rather than for legitimate accumulation.
+Each inbound transfer was followed within [N] hours by a corresponding outbound remittance of equivalent or near-equivalent value.
+The outbound transfers were directed exclusively to beneficiary accounts held at financial institutions in [country], a jurisdiction designated as high-risk by the Financial Action Task Force.
 
-Description:
-SAR narratives must present facts objectively and without personal bias, assumptions, or conclusions about the customer's guilt. The role of the compliance analyst is to describe the suspicious activity and explain why it deviates from expected behavior based on the customer's known profile. The determination of criminal intent is the responsibility of law enforcement, not the filing institution. Subjective language or speculation undermines the credibility of the SAR and can expose the institution to legal liability.
-
-Best Practices:
-* Present transaction facts and customer profile information as documented in the institution's records.
-* Avoid phrases that assume intent, such as "the customer is laundering money." Instead, use language such as "the transaction pattern is inconsistent with the customer's stated business profile."
-* Clearly distinguish between observed facts and analytical assessments.
-* When stating a reason for suspicion, explain the analytical basis: what the expected behavior would be, what the actual behavior was, and why the deviation is noteworthy.
-* Do not include personal opinions, moral judgments, or characterizations of the customer.
-* Reference applicable AML typologies and regulatory guidelines to provide analytical context for the suspicion.
-
----
-
-SAR WRITING GUIDELINE – STRUCTURE
-
-Description:
-A well-structured SAR narrative follows a logical format that guides the reader through the identification and analysis of suspicious activity. Regulatory agencies expect narratives to cover specific elements including the subject's identity, the nature of the suspicious activity, the transaction details, the reason for suspicion, and any actions taken by the institution. A standardized structure ensures consistency across filings, reduces the risk of omitting critical details, and facilitates efficient review by regulators.
-
-Sections to include:
-
-Introduction:
-Identify the filing institution, the subject of the report (customer name, account number, account type), the monitoring period, and the alert or trigger that initiated the review.
-
-Description of Activity:
-Provide a chronological description of the suspicious activity. Describe what the customer did, including specific transaction types (cash deposits, wire transfers, check disbursements), amounts, dates, and counterparties.
-
-Transaction Analysis:
-Summarize the quantitative aspects of the activity. Include total transaction count, total amounts, date ranges, average transaction sizes, and any patterns (e.g., amounts consistently below reporting thresholds). Compare observed activity to the customer's expected profile.
-
-Reason for Suspicion:
-Explain why the observed activity is considered suspicious. Reference applicable AML typologies, describe deviations from the customer's expected behavior, note any missing documentation, and identify connections to high-risk indicators (jurisdictions, PEPs, shell companies).
-
-Conclusion:
-State the institution's decision to file the SAR. Summarize the key facts and the reason for suspicion. Note any actions taken by the institution, such as account restrictions, enhanced monitoring, or relationship termination.
+Prohibited phrases — never use:
+"Total inbound:" (data label — not prose)
+"Transaction count:" (data label — not prose)
+"Residual balance: INR None" (null value — omit sentence)
+"As per the data provided..." (meta-reference)
+"Based on the above..." (hollow transition)
 
 ---
+PARAGRAPH 3 — STATISTICAL DEVIATION AND TYPOLOGY INDICATORS
 
-SAR WRITING GUIDELINE – WHO WHAT WHEN WHERE WHY
-
-Description:
-A well-written SAR narrative should answer the following questions: Who conducted the activity, what occurred, when the activity took place, where the transactions occurred, and why the activity is considered suspicious. This framework ensures that the narrative provides a complete picture of the suspicious activity. Regulatory reviewers and law enforcement investigators rely on these five elements to assess the severity and scope of the reported activity.
-
-Best Practices:
-* WHO: Identify the subject by name, customer ID, account number, account type, and declared occupation or business.
-* WHAT: Describe the specific transactions and activities that triggered the alert (deposits, transfers, withdrawals).
-* WHEN: Provide exact dates and time frames for the suspicious activity and the monitoring period.
-* WHERE: Identify branch locations, destination countries, beneficiary institutions, and jurisdictions involved.
-* WHY: Explain why the activity is considered suspicious by referencing AML typologies, profile deviations, and regulatory requirements.
+Approved deviation citation phrases:
+The observed transaction volume represents a [X]% increase over the account holder's documented twelve-month average monthly deposits.
+The total value transited during the monitoring period exceeds the account holder's declared monthly income by a factor of [N].
+The average individual transaction amount of INR [X] fell consistently below the RBI mandatory reporting threshold of INR [threshold], a pattern characteristic of deliberate threshold avoidance.
+Each of the [N] transactions in the monitoring period was individually sized between INR [lower] and INR [upper], placing all transactions within the [X] to [Y] percent band of the reporting threshold.
+The account holder's declared [occupation/profile] would suggest a maximum expected transaction volume of INR [X] per month; the observed activity exceeds this ceiling by [N] times.
+The transaction count of [N] over [days] days represents a per-day velocity of [X] transactions, exceeding the institution's velocity threshold of [threshold] transactions per day.
 
 ---
+PARAGRAPH 4 — TYPOLOGY AND RULE RATIONALE
 
-SAR WRITING GUIDELINE – TRANSACTION DETAIL AND EVIDENCE
-
-Description:
-Transaction details are the evidentiary backbone of a SAR narrative. Every assertion about suspicious activity must be supported by specific, verifiable transaction data. Narratives that lack precise figures, dates, and counterparty information are significantly less useful to law enforcement investigators. Analysts must extract and present relevant transaction details in a manner that enables the reader to independently verify the suspicious pattern.
-
-Best Practices:
-* Include exact transaction amounts, dates, originator and beneficiary details, and transaction reference numbers where available.
-* Present aggregated statistics: total number of transactions, total amount, date range, and average per-transaction amount.
-* Identify and describe the specific transactions that most clearly demonstrate the suspicious pattern.
-* If the customer was contacted for explanations, document the response (or lack of response) and note whether the explanation aligned with the observed activity.
-* Attach or reference supporting documentation such as account statements, KYC records, or alert summaries if the filing format permits.
+Approved typology reference phrases:
+The fund flow pattern is consistent with the recognised AML typology of [typology name].
+The observed pattern is consistent with the [typology] sub-typology of [specific variant], wherein [mechanism description].
+The pattern is indicative of a coordinated effort to [placement/layering/integration mechanism] and to defeat automated audit trail mechanisms.
+The involvement of a FATF-designated high-risk jurisdiction as the [sole/primary] destination for outbound transfers is a recognised indicator of cross-border layering.
+The systematic sub-threshold transaction sizing across [N] transactions demonstrates a level of operational planning inconsistent with routine [financial/business/personal] activity.
+The following AML rules were triggered during the compliance review: [rule name] ([rule ID]), [rule name] ([rule ID]), and [rule name] ([rule ID]).
+Rule [ID] was triggered because [specific factual reason from evidence block]. Rule [ID] was triggered because [specific factual reason from evidence block].
 
 ---
+PARAGRAPH 5 — FILING DECISION AND ENHANCED MONITORING
 
-SAR WRITING GUIDELINE – CUSTOMER PROFILE COMPARISON
+Approved closing sentences:
+Based on the totality of evidence assembled during this review, the filing institution has determined that the transaction activity is suspicious and does not have a discernible lawful explanation consistent with the account holder's declared profile.
+The filing institution has determined that the observed activity meets the threshold for SAR submission and files this report pursuant to PMLA Section 12 and Rule 3 of the Prevention of Money Laundering (Maintenance of Records) Rules 2005.
+This SAR is filed under PMLA Section 12. The account has been placed under enhanced transaction monitoring with immediate effect.
+The account has been referred for enhanced due diligence review including re-verification of source of funds and beneficial ownership documentation.
+All related accounts identified through network analysis have been flagged for concurrent review.
+The matter has been escalated to the institution's Financial Intelligence Unit for further investigation and potential referral to the relevant law enforcement authority.
+Source of funds documentation has been requested from the account holder pending completion of the enhanced due diligence process.
 
-Description:
-The suspicion of activity often arises from a deviation between the customer's observed transaction behavior and their known profile. The narrative should establish the customer's baseline profile, including declared occupation, expected income, expected transaction types and volumes, and nature of business. Then the narrative should describe how the observed activity departed from this baseline.
+---
+APPROVED REGULATORY CITATIONS
 
-Best Practices:
-* State the customer's declared occupation, monthly or annual income, nature of business, and account type.
-* Describe the customer's historical transaction behavior (average monthly deposits, typical transaction sizes).
-* Quantify the deviation: e.g., "The customer's average monthly deposits were INR 1,50,000 over the past 12 months. During the review period, deposits totaled INR 50,00,000 in 7 days — a 3,233% increase."
-* Reference any KYC deficiencies: missing documents, incomplete beneficial ownership information, or outdated profile data.
-* Note whether the customer was given an opportunity to explain the activity and what response, if any, was received.
+PMLA 2002 Section 12 — mandatory SAR reporting obligation for banking institutions
+RBI Master Direction on KYC 2016 — customer risk profiling and monitoring obligations
+RBI AML Guidelines — velocity and structuring threshold parameters
+FIU-IND Guideline Section 3.2 — structuring and smurfing reporting requirements
+FATF Recommendation 16 — wire transfer transparency and suspicious activity reporting
+FATF High Risk Jurisdictions 2024 — list of jurisdictions subject to enhanced monitoring
+PMLA KYC Guidelines — customer risk profiling obligations
+Prevention of Money Laundering (Maintenance of Records) Rules 2005, Rule 3 — SAR filing procedure
+RBI Master Direction 2023 — Currency Transaction Report filing obligations above INR 1,00,000

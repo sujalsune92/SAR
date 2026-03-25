@@ -1,172 +1,42 @@
-SAR NARRATIVE WRITING GUIDE – STRUCTURING
+TEMPLATE — LAYERING NARRATIVE (SALARIED EMPLOYEE, INTERNATIONAL TRANSFER)
+Use for: Layering typology, individual account holder, cross-border outbound
+---
+The filing institution is submitting this Suspicious Activity Report concerning a {account_type} account held by a {customer_profile} at this institution. The account was flagged by the institution's automated transaction monitoring system following the detection of anomalous inbound and outbound transfer activity during a {time_window_days}-day monitoring period. The filing institution has conducted a preliminary review and determined that the observed activity meets the threshold for SAR submission under the Prevention of Money Laundering Act 2002, Section 12.
 
-Use this guide to understand the structure and language pattern for structuring SAR narratives.
-Do not copy any figures, amounts, counts, or percentages from this guide.
-All figures must come from the evidence summary provided separately.
+During the monitoring period, the account received {transaction_count} inbound fund transfers from multiple domestic sources, aggregating to INR {total_amount}. Within a short time window following each receipt, the account holder initiated corresponding outbound international wire transfers directing the consolidated funds to beneficiary accounts at financial institutions in {destination_country}. The residual account balance returned to near zero following each completed outbound cycle, indicating that the account was functioning as a pass-through transit mechanism rather than serving any identifiable legitimate accumulation or expenditure purpose.
 
-Paragraph 1 — Introduction:
-Open by stating the filing institution is submitting a Suspicious Activity Report.
-Identify the account type and customer profile category only — no names or IDs.
-State the alert type that triggered the review.
-State the monitoring period duration in days — no specific dates.
-Example sentence pattern: "The filing institution is submitting this Suspicious Activity Report concerning a [account type] account held by the subject, a [profile type]. This review was initiated following a transaction monitoring alert for potential structuring activity during a [N]-day monitoring period."
+The observed transaction activity represents a significant deviation from the account holder's established financial profile. The total value transited during the monitoring period represents a {deviation_pct}% increase over the account holder's documented twelve-month average monthly deposits. The average individual transaction amount of INR {avg_amount} fell consistently below the RBI mandatory reporting threshold, a pattern consistent with deliberate threshold avoidance. The transaction velocity of {txn_per_day} transactions per day exceeded the institutional monitoring threshold.
 
-Paragraph 2 — Activity Description:
-Describe the cash deposit activity using only the figures provided in the evidence summary.
-State the total deposit count and total amount.
-State the destination country if an international transfer occurred.
-Do not mention branch counts, min/max deposit ranges, or any figure not in the evidence summary.
-Example sentence pattern: "During the monitoring period, the subject conducted [N] cash deposits totaling INR [amount]. Following the deposits, the subject transferred funds to a beneficiary in [destination country]."
+The fund flow pattern — multiple domestic inflows followed by rapid consolidated cross-border outflows to a high-risk jurisdiction, with near-zero residual balances — is consistent with the recognised AML typology of {alert_type}. The destination jurisdiction, {destination_country}, appears on the FATF high-risk jurisdiction list, elevating the risk classification of the observed cross-border transfers. The combination of sub-threshold transaction sizing, high velocity, profile inconsistency, and high-risk jurisdiction exposure is indicative of a coordinated layering operation designed to obscure the origin of funds.
 
-Paragraph 3 — Transaction Analysis:
-State the total count, total amount, time window, and average transaction amount.
-If customer financials are provided, state the deviation percentage using the exact figure given.
-If customer financials are not provided, state only the count, total, and average — nothing else.
-Do not write income or baseline figures unless explicitly provided.
-Example sentence pattern: "The total of [N] deposits over [N] days averaged INR [amount] per transaction. The subject's declared monthly income of INR [income] and average monthly deposits of INR [baseline] represent a [N]% increase over the historical baseline."
-
-Paragraph 4 — Reason for Suspicion:
-Name the typology explicitly: structuring.
-Explain that the pattern involves deliberately splitting amounts below the reporting threshold.
-Reference the high-risk jurisdiction if AML-006 was triggered.
-Reference profile inconsistency if AML-005 was triggered.
-Do not add indicators or behaviors not present in the evidence summary.
-Example sentence pattern: "The transaction pattern is consistent with the AML typology of structuring — deliberately splitting a large sum into sub-threshold deposits to evade regulatory reporting. The subject's profile does not support the observed activity. The subsequent transfer to [country], a FATF high-risk jurisdiction, further heightens the concern."
-
-Paragraph 5 — Conclusion:
-State the institution is filing the SAR.
-Reference PMLA Section 12 for Indian cases or BSA/AML for US cases.
-State the account is under enhanced monitoring.
-Nothing else — no recommendations, no next steps.
-Example sentence pattern: "Based on the analysis above, the filing institution has determined that the activity is suspicious and is filing this SAR in accordance with PMLA Section 12. The account has been placed under enhanced monitoring."
+Based on the evidence assembled during this review, the filing institution has determined that the activity is suspicious and files this SAR pursuant to PMLA Section 12. The account has been placed under enhanced monitoring with immediate effect, and all related accounts identified through network analysis have been flagged for review. Source of funds documentation has been requested from the account holder, and the matter has been escalated to the institution's Financial Intelligence Unit.
 
 ---
 
-SAR NARRATIVE WRITING GUIDE – OFFSHORE TRANSFERS
+TEMPLATE — STRUCTURING NARRATIVE (BUSINESS ACCOUNT, CASH DEPOSITS)
+Use for: Structuring typology, business or individual, domestic cash activity
+---
+The filing institution submits this Suspicious Activity Report in respect of a {account_type} account held by a {customer_profile} at this institution. The account was identified by the institution's transaction surveillance system as exhibiting cash deposit patterns consistent with deliberate structuring to circumvent mandatory Currency Transaction Reporting obligations under RBI Master Direction 2023. The monitoring period encompasses {time_window_days} calendar days.
 
-Use this guide to understand the structure and language pattern for offshore transfer SAR narratives.
-Do not copy any figures, amounts, counts, or percentages from this guide.
-All figures must come from the evidence summary provided separately.
+During the monitoring period, the account received {transaction_count} separate transactions with an aggregate value of INR {total_amount}. Each individual transaction was individually sized below the RBI mandatory reporting threshold of INR 1,00,000. The average individual transaction amount of INR {avg_amount} placed the transactions consistently within the sub-threshold band, a pattern characteristic of deliberate threshold avoidance rather than incidental transaction sizing. The transactions occurred at a rate of {txn_per_day} per day across the monitoring period.
 
-Paragraph 1 — Introduction:
-State the filing institution is submitting a SAR.
-Identify account type and customer profile only.
-State the offshore transfer alert type and monitoring period duration.
+The aggregate transaction volume observed during the monitoring period is inconsistent with the account holder's declared financial profile. The total of INR {total_amount} transited during this period represents a {deviation_pct}% increase over the account holder's documented historical baseline. No supplemental income sources or commercial activities have been declared that would provide a legitimate explanation for transaction volumes of this magnitude concentrated within the monitoring window.
 
-Paragraph 2 — Activity Description:
-Describe the outbound international transfers using only figures from the evidence summary.
-State total transfer count, total amount, and destination country.
-Note absence of documentation only if it was flagged in the evidence summary.
+The pattern of multiple transactions each systematically sized below the mandatory reporting threshold, accumulated over {time_window_days} days, is consistent with the AML typology of {alert_type}. The systematic sub-threshold sizing across {transaction_count} transactions demonstrates operational planning inconsistent with routine financial activity and is a primary indicator of deliberate structuring under PMLA 2002 and FIU-IND Guideline Section 3.2. The triggered compliance rules include structured threshold avoidance, velocity exceedance, and profile inconsistency.
 
-Paragraph 3 — Transaction Analysis:
-State total transfer count, total amount, and time window.
-If customer financials are provided, state the deviation.
-If not provided, write only the count, total, and time window.
-
-Paragraph 4 — Reason for Suspicion:
-Name the typology: offshore transfers.
-Reference the high-risk jurisdiction by country name.
-Reference profile inconsistency if triggered.
-Reference absence of documentation if flagged.
-
-Paragraph 5 — Conclusion:
-State the institution is filing the SAR under PMLA Section 12 or BSA/AML.
-State the account is under enhanced monitoring.
+The filing institution has determined that the transaction activity is suspicious and files this SAR under PMLA Section 12. The account has been placed under enhanced monitoring. A source of funds review has been initiated and documentation has been requested from the account holder. The matter has been referred to the institution's Senior Compliance Officer for further investigation and potential escalation to the Financial Intelligence Unit of India.
 
 ---
 
-SAR NARRATIVE WRITING GUIDE – LAYERING
-
-Use this guide to understand the structure and language pattern for layering SAR narratives.
-Do not copy any figures, amounts, counts, or percentages from this guide.
-All figures must come from the evidence summary provided separately.
-
-Paragraph 1 — Introduction:
-State the filing institution is submitting a SAR.
-Identify account type and customer profile only.
-State the layering alert type and monitoring period duration.
-
-Paragraph 2 — Activity Description:
-Describe inbound transfers — count and total amount.
-Describe rapid outbound transfers — count, total amount, destination.
-Note the near-zero residual balance if triggered.
-
-Paragraph 3 — Transaction Analysis:
-State inbound count and total, outbound count and total.
-State the turnaround time between receipt and disbursement if provided.
-State residual balance if provided.
-
-Paragraph 4 — Reason for Suspicion:
-Name the typology: layering.
-Explain the multi-hop transfer pattern.
-Reference high-risk jurisdictions if triggered.
-
-Paragraph 5 — Conclusion:
-State the institution is filing the SAR under PMLA Section 12 or BSA/AML.
-State the account is under enhanced monitoring.
-
+TEMPLATE — ROUND TRIPPING NARRATIVE (CORPORATE ACCOUNT)
+Use for: Round tripping typology, corporate or business entity account
 ---
+The filing institution files this Suspicious Activity Report in connection with a {account_type} account held by a {customer_profile} at this institution. The account was identified through the institution's enhanced monitoring programme following the detection of circular cross-border fund flow patterns during a {time_window_days}-day monitoring period. The filing institution has determined that the observed activity is consistent with round tripping activity and meets the threshold for SAR submission under PMLA Section 12.
 
-SAR NARRATIVE WRITING GUIDE – SMURFING
+During the monitoring period, the account received {transaction_count} inbound international wire transfers originating from offshore sources aggregating to INR {total_amount}. Within a short period of each inbound receipt, the account executed outbound international wire transfers of equivalent or near-equivalent value directed to separate offshore entities. The net change in account balance across the full monitoring period was negligible, confirming that the account served exclusively as a transit mechanism with no commercial value retained by the account holder.
 
-Use this guide to understand the structure and language pattern for smurfing SAR narratives.
-Do not copy any figures, amounts, counts, or percentages from this guide.
-All figures must come from the evidence summary provided separately.
+The cross-border fund flows are irreconcilable with the account holder's declared financial and business profile. The INR {total_amount} transited during the monitoring period represents a {deviation_pct}% deviation above the account holder's established baseline. No supporting trade documentation, contractual agreements, invoices, or investment instruments corresponding to the observed international fund flows have been identified in the account's records.
 
-Paragraph 1 — Introduction:
-State the filing institution is submitting a SAR.
-Identify account type and customer profile only.
-State the smurfing alert type and monitoring period duration.
+The circular fund flow pattern — offshore inflows followed by equivalent offshore outflows through a domestic transit account with near-zero residual balance — is consistent with the recognised AML typology of {alert_type}. This technique is employed to repatriate funds of illicit origin as apparent legitimate foreign investment or trade proceeds, thereby integrating illicit funds into the formal financial system. The involvement of {destination_country} as an outbound destination jurisdiction elevates the risk profile of the observed transfers.
 
-Paragraph 2 — Activity Description:
-Describe the cash deposit activity — total count, total amount, time window.
-Mention destination country if international transfer occurred.
-Do not mention branch counts or min/max ranges unless explicitly provided.
-
-Paragraph 3 — Transaction Analysis:
-State total count, total amount, average amount.
-If customer financials are provided, state the deviation percentage.
-If not provided, omit income and baseline comparison entirely.
-
-Paragraph 4 — Reason for Suspicion:
-Name the typology: smurfing.
-Explain the sub-threshold deposit aggregation pattern.
-Reference high-risk jurisdiction if triggered.
-Reference profile inconsistency if triggered.
-
-Paragraph 5 — Conclusion:
-State the institution is filing the SAR under PMLA Section 12 or BSA/AML.
-State the account is under enhanced monitoring.
-
----
-
-SAR NARRATIVE WRITING GUIDE – RAPID MOVEMENT OF FUNDS
-
-Use this guide to understand the structure and language pattern for rapid movement SAR narratives.
-Do not copy any figures, amounts, counts, or percentages from this guide.
-All figures must come from the evidence summary provided separately.
-
-Paragraph 1 — Introduction:
-State the filing institution is submitting a SAR.
-Identify account type and customer profile only.
-State the rapid movement alert type and monitoring period duration.
-
-Paragraph 2 — Activity Description:
-Describe inbound transfers and rapid outbound transfers.
-State destination country if international.
-Note near-zero residual balance pattern.
-
-Paragraph 3 — Transaction Analysis:
-State inbound and outbound totals and counts.
-State turnaround time if provided.
-State residual balance if provided.
-If income is provided, state the deviation.
-
-Paragraph 4 — Reason for Suspicion:
-Name the typology: rapid movement of funds.
-Explain the pass-through conduit pattern.
-Reference high-risk jurisdiction if triggered.
-
-Paragraph 5 — Conclusion:
-State the institution is filing the SAR under PMLA Section 12 or BSA/AML.
-State the account is under enhanced monitoring.
+Based on the totality of the evidence, the filing institution has determined that the activity is suspicious and files this SAR pursuant to PMLA Section 12. The account has been suspended pending enhanced due diligence. Source of funds and beneficial ownership documentation has been requested, and the matter has been escalated to the institution's Financial Intelligence Unit and external legal counsel.
