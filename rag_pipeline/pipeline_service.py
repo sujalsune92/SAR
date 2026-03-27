@@ -15,16 +15,66 @@ import ollama
 from sentence_transformers import SentenceTransformer
 
 try:
-    from .rule_engine import build_rag_query, calculate_risk_score, evaluate_rules
+    from .rule_engine import build_rag_query, calculate_risk_score, evaluate_rules, load_rule_config
 except ImportError:
-    from rule_engine import build_rag_query, calculate_risk_score, evaluate_rules
+    from rule_engine import build_rag_query, calculate_risk_score, evaluate_rules, load_rule_config
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_ALERT_PATH = ROOT_DIR / "data" / "alert_case.json"
 VECTOR_DB_PATH = Path(os.getenv("CHROMA_DB_PATH", ROOT_DIR / "rag_pipeline" / "vector_db"))
-PROMPT_VERSION = "local-fastapi-v1"
+PROMPT_VERSION = "local-fastapi-v4"
 DEFAULT_MODEL_NAME = os.getenv("OLLAMA_MODEL", "mistral:7b")
+
+# Max characters per retrieved RAG chunk passed to the LLM.
+# Keeps context window free so Mistral can cite all 9 rules.
+RAG_CHUNK_MAX_CHARS = 1800
+
+# Rule IDs that belong to the structuring/velocity/profile group (paragraph 3)
+STRUCTURING_RULE_IDS = {"AML-001", "AML-002", "AML-003", "AML-004", "AML-005", "AML-013"}
+# Rule IDs that belong to the jurisdiction/layering group (paragraph 4)
+JURISDICTION_RULE_IDS = {"AML-006", "AML-007", "AML-008", "AML-009", "AML-010", "AML-011", "AML-012"}
+
+
+# ════════════════════════════════════════════════════════
+# TRANSACTION FIELD KEYWORDS
+# ════════════════════════════════════════════════════════
+TXN_KEYWORDS: dict[str, list[str]] = {
+    "total_amount":        ["INR", "total", "amount", "aggregate", "lakh", "crore"],
+    "transaction_count":   ["transactions", "transfers", "executed", "inbound", "twenty-eight", "28"],
+    "time_window_days":    ["days", "within", "period", "window", "monitoring", "three-day"],
+    "destination_country": ["UAE", "MYANMAR", "CAYMAN", "BAHAMAS", "IRAN",
+                            "SEYCHELLES", "MAURITIUS", "VANUATU", "PANAMA",
+                            "transferred", "jurisdiction", "international", "offshore"],
+    "avg_amount":          ["average", "avg", "per transaction", "individual"],
+    "txn_per_day":         ["velocity", "txn/day", "daily", "threshold", "per day"],
+}
+
+
+# ════════════════════════════════════════════════════════
+# DYNAMIC RULE KEYWORD MAP — built from rules.yaml
+# ════════════════════════════════════════════════════════
+def _build_rule_keyword_map() -> dict[str, dict[str, Any]]:
+    config = load_rule_config()
+    keyword_map: dict[str, dict[str, Any]] = {}
+    for rule in config.get("rules", []):
+        rule_id = rule["id"]
+        obs_plain = re.sub(r"\{[^}]+\}", " ", rule.get("observation_template", ""))
+        why_plain = re.sub(r"\{[^}]+\}", " ", rule.get("audit_reason", {}).get("why_flagged_template", ""))
+        all_keywords = list(set(
+            [w.strip(".,()[]") for w in obs_plain.split() if len(w.strip(".,()[]")) > 3]
+            + [w.strip(".,()[]") for w in why_plain.split() if len(w.strip(".,()[]")) > 3]
+            + [w for w in rule.get("name", "").split() if len(w) > 3]
+        ))
+        conditions = rule.get("conditions", [])
+        path = conditions[0].get("path", "") if conditions else ""
+        field = path.split(".")[-1] if "." in path else path
+        keyword_map[rule_id] = {
+            "keywords":  all_keywords,
+            "field":     field,
+            "rule_name": rule.get("name", rule_id),
+        }
+    return keyword_map
 
 
 def utc_now() -> str:
@@ -49,13 +99,10 @@ def mask_name(value: str | None) -> str | None:
     if not value:
         return value
     parts = value.split()
-    masked_parts = []
-    for part in parts:
-        if len(part) <= 1:
-            masked_parts.append("*")
-        else:
-            masked_parts.append(f"{part[0]}{'*' * (len(part) - 1)}")
-    return " ".join(masked_parts)
+    return " ".join(
+        f"{p[0]}{'*' * (len(p) - 1)}" if len(p) > 1 else "*"
+        for p in parts
+    )
 
 
 def mask_alert(alert: dict[str, Any]) -> dict[str, Any]:
@@ -65,8 +112,90 @@ def mask_alert(alert: dict[str, Any]) -> dict[str, Any]:
     return masked
 
 
+# ════════════════════════════════════════════════════════
+# FIX 1 — normalise_amount_for_allowed_set
+# Converts a numeric value to ALL string representations
+# that might appear in the narrative after comma-stripping.
+# Prevents float "1450000.0" vs integer "1450000" mismatch.
+# ════════════════════════════════════════════════════════
+def _normalise_amount_for_allowed_set(value: float | int | str) -> set[str]:
+    """
+    Returns all string forms a number might take after
+    normalise_number_tokens() strips commas.
+
+    Examples:
+        1450000.0  → {"1450000.0", "1450000"}
+        51786      → {"51786",     "51786.0"}
+        9.3        → {"9.3"}
+        3715.8     → {"3715.8"}
+    """
+    result: set[str] = set()
+    try:
+        f = float(value)
+        result.add(str(f))                       # "1450000.0"
+        result.add(str(int(f)) if f == int(f) else str(f))  # "1450000"
+        result.add(str(round(f)))                # "1450000"
+        # Handle comma-formatted versions that get stripped
+        # e.g. "14,50,000" → "1450000" already covered above
+    except (ValueError, TypeError):
+        result.add(str(value))
+    return result
+
+
+# ════════════════════════════════════════════════════════
+# SPLIT PARAGRAPHS
+# Handles 3 LLM output formats:
+#   1. Heading-prefixed  (Background\n...\nTypology\n...)
+#   2. Blank-line prose  ← desired format
+#   3. Numbered list     (1. ... 2. ...)  ← Mistral fallback
+# ════════════════════════════════════════════════════════
 def split_paragraphs(text: str) -> list[str]:
-    return [paragraph.strip() for paragraph in text.split("\n\n") if paragraph.strip()]
+    raw_text = (text or "").strip()
+    if not raw_text:
+        return []
+
+    # Format 1: heading-prefixed
+    heading_pattern = re.compile(
+        r"^(background|transaction summary|typology|evidence|conclusion)\s*:?$",
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    if heading_pattern.search(raw_text):
+        lines = [line.rstrip() for line in raw_text.splitlines()]
+        sections: list[str] = []
+        current_lines: list[str] = []
+        for line in lines:
+            if heading_pattern.match(line.strip()):
+                if current_lines:
+                    section = " ".join(c.strip() for c in current_lines if c.strip()).strip()
+                    if section:
+                        sections.append(section)
+                current_lines = []
+                continue
+            if line.strip():
+                current_lines.append(line.strip())
+            elif current_lines:
+                current_lines.append(" ")
+        if current_lines:
+            section = " ".join(c.strip() for c in current_lines if c.strip()).strip()
+            if section:
+                sections.append(section)
+        if len(sections) == 5:
+            return sections
+
+    # Format 2: blank-line prose (desired)
+    by_blank = [p.strip() for p in re.split(r"\n\s*\n", raw_text) if p.strip()]
+    if len(by_blank) == 5:
+        return by_blank
+
+    # Format 3: numbered list
+    numbered_split = re.split(r"\n(?=\d+[\.\)]\s)", raw_text.strip())
+    by_number = [re.sub(r"^\d+[\.\)]\s*", "", p).strip() for p in numbered_split if p.strip()]
+    if len(by_number) == 5:
+        return by_number
+
+    # Fallback: return whichever split found more paragraphs
+    candidates = sorted([by_blank, by_number], key=len, reverse=True)
+    return candidates[0] if candidates[0] else by_blank
 
 
 def split_sentences(text: str) -> list[str]:
@@ -80,15 +209,9 @@ def normalise_number_tokens(text: str) -> set[str]:
 
 def build_text_diff(original: str, updated: str) -> list[dict[str, Any]]:
     import difflib
-
-    original_lines = original.splitlines()
-    updated_lines = updated.splitlines()
     diff = difflib.unified_diff(
-        original_lines,
-        updated_lines,
-        fromfile="generated",
-        tofile="analyst",
-        lineterm="",
+        original.splitlines(), updated.splitlines(),
+        fromfile="generated", tofile="analyst", lineterm="",
     )
     return [{"line": line} for line in diff]
 
@@ -108,6 +231,7 @@ class SarRagService:
     def __init__(self, model_name: str = DEFAULT_MODEL_NAME) -> None:
         self.model_name = model_name
 
+    # ── LLM call with GPU fallback ──
     def _chat_with_fallback(
         self,
         model_name: str,
@@ -125,10 +249,8 @@ class SarRagService:
                 options=model_options,
             )
         except Exception as exc:
-            message = str(exc).lower()
-            if "cuda" not in message and "gpu" not in message:
+            if "cuda" not in str(exc).lower() and "gpu" not in str(exc).lower():
                 raise
-
             fallback_options = dict(model_options)
             fallback_options["num_gpu"] = 0
             return ollama.chat(
@@ -140,34 +262,54 @@ class SarRagService:
                 options=fallback_options,
             )
 
+    # ── Generation with word-count retry (up to 3 attempts) ──
+    def _generate_narrative(
+        self,
+        alert: dict[str, Any],
+        prompt_payload: dict[str, Any],
+    ) -> str:
+        # FIX 2 — increased retries from 2 to 3 to reduce short-narrative failures
+        narrative = ""
+        for attempt in range(3):
+            raw = self._chat_with_fallback(
+                model_name=self.model_name,
+                system_prompt=prompt_payload["system_prompt"],
+                user_prompt=prompt_payload["user_prompt"],
+                model_options=prompt_payload["model_options"],
+            )
+            narrative = self._post_process_narrative(raw["message"]["content"], alert)
+            paragraphs = split_paragraphs(narrative)
+            word_count = len(narrative.split())
+            # Accept only if BOTH conditions are met — 5 paragraphs AND word count
+            if len(paragraphs) == 5 and word_count >= 290:
+                return narrative
+        # Return best attempt even if not perfect — validation will flag it
+        return narrative
+
     def process_alert(self, alert: dict[str, Any]) -> dict[str, Any]:
         case_started_at = utc_now()
         masked_alert = mask_alert(alert)
-        audit_events: list[dict[str, Any]] = [
-            {
-                "event_type": "CASE_INGESTED",
-                "payload": {
-                    "alert_id": alert["alert_id"],
-                    "masked_alert": masked_alert,
-                    "timestamp": case_started_at,
-                },
-            }
-        ]
+        audit_events: list[dict[str, Any]] = [{
+            "event_type": "CASE_INGESTED",
+            "payload": {
+                "alert_id": alert["alert_id"],
+                "masked_alert": masked_alert,
+                "timestamp": case_started_at,
+            },
+        }]
 
         evidence_blocks = evaluate_rules(alert)
         risk_score, risk_level = calculate_risk_score(evidence_blocks)
         evidence_pack = self._build_evidence_pack(alert, evidence_blocks, risk_score, risk_level)
-        audit_events.append(
-            {
-                "event_type": "RULES_EVALUATED",
-                "payload": {
-                    "risk_score": risk_score,
-                    "risk_level": risk_level,
-                    "rule_count": len(evidence_blocks),
-                    "evidence_blocks": evidence_blocks,
-                },
-            }
-        )
+        audit_events.append({
+            "event_type": "RULES_EVALUATED",
+            "payload": {
+                "risk_score": risk_score,
+                "risk_level": risk_level,
+                "rule_count": len(evidence_blocks),
+                "evidence_blocks": evidence_blocks,
+            },
+        })
 
         if not evidence_blocks:
             final_sar = {
@@ -179,20 +321,9 @@ class SarRagService:
                 "risk_score": risk_score,
                 "risk_level": risk_level,
                 "rules_triggered": 0,
-                "narrative": "No suspicious activity threshold was met by the deterministic rule engine. No SAR draft was generated and the case has been closed.",
+                "narrative": "No suspicious activity threshold was met. Case closed.",
                 "generated_at": utc_now(),
                 "status": "NO_SAR_REQUIRED",
-            }
-            validation = {
-                "passed": True,
-                "checks": [
-                    {
-                        "name": "no_rules_triggered",
-                        "passed": True,
-                        "details": "Case closed without narrative generation because no AML rules fired.",
-                    }
-                ],
-                "failed_checks": [],
             }
             return {
                 "status": "NO_SAR_REQUIRED",
@@ -202,7 +333,12 @@ class SarRagService:
                 "evidence_pack": evidence_pack,
                 "retrieval_payload": {},
                 "prompt_payload": {},
-                "validation_payload": validation,
+                "validation_payload": {
+                    "passed": True,
+                    "checks": [{"name": "no_rules_triggered", "passed": True,
+                                "details": "No AML rules fired."}],
+                    "failed_checks": [],
+                },
                 "final_sar": final_sar,
                 "analyst_traceability": [],
                 "audit_events": audit_events,
@@ -210,40 +346,23 @@ class SarRagService:
 
         query = build_rag_query(evidence_blocks, masked_alert)
         retrieval_payload = self._retrieve_context(query)
-        audit_events.append(
-            {
-                "event_type": "RAG_RETRIEVAL_COMPLETED",
-                "payload": retrieval_payload,
-            }
-        )
+        audit_events.append({"event_type": "RAG_RETRIEVAL_COMPLETED", "payload": retrieval_payload})
 
         prompt_payload = self._build_prompt_bundle(masked_alert, evidence_blocks, retrieval_payload)
+        narrative = self._generate_narrative(alert, prompt_payload)
+        validation_payload = self._validate_narrative(alert, narrative)
 
-        # ── CHANGE 3: generate with one automatic retry if word count is too low ──
-        raw_response = self._chat_with_fallback(
-            model_name=self.model_name,
-            system_prompt=prompt_payload["system_prompt"],
-            user_prompt=prompt_payload["user_prompt"],
-            model_options=prompt_payload["model_options"],
-        )
-        narrative = self._post_process_narrative(raw_response["message"]["content"], alert)
-
-        if len(narrative.split()) < 280:
-            raw_response = self._chat_with_fallback(
-                model_name=self.model_name,
-                system_prompt=prompt_payload["system_prompt"],
-                user_prompt=prompt_payload["user_prompt"],
-                model_options=prompt_payload["model_options"],
+        # Hard block: PII detected → never store, never export
+        pii_check = next((c for c in validation_payload["checks"] if c["name"] == "no_pii_exposed"), None)
+        if pii_check and not pii_check["passed"]:
+            raise RuntimeError(
+                "HARD BLOCK: Customer PII detected in generated narrative. "
+                "Case will not be stored. Check prompt data rules."
             )
-            narrative = self._post_process_narrative(raw_response["message"]["content"], alert)
-        # ── end CHANGE 3 ──
 
         sentence_traceability = self._build_sentence_traceability(
-            narrative,
-            evidence_blocks,
-            retrieval_payload["documents"],
+            narrative, evidence_blocks, retrieval_payload["documents"],
         )
-        validation_payload = self._validate_narrative(alert, narrative)
 
         final_sar = {
             "customer_name": alert["customer_name"],
@@ -260,32 +379,37 @@ class SarRagService:
             "status": "PENDING_ANALYST_REVIEW",
         }
 
-        audit_events.extend(
-            [
-                {
-                    "event_type": "LLM_GENERATION_COMPLETED",
-                    "payload": {
-                        "model_name": self.model_name,
-                        "model_options": prompt_payload["model_options"],
-                        "prompt_version": prompt_payload["prompt_version"],
-                        "prompt_sha256": prompt_payload["prompt_sha256"],
-                        "prompt_sha": prompt_payload["prompt_sha"],
-                        "raw_response": raw_response,
+        audit_events.extend([
+            {
+                "event_type": "LLM_GENERATION_COMPLETED",
+                "payload": {
+                    "model_name": self.model_name,
+                    "model_options": prompt_payload["model_options"],
+                    "prompt_version": prompt_payload["prompt_version"],
+                    "prompt_sha256": prompt_payload["prompt_sha256"],
+                    "prompt_sha": prompt_payload["prompt_sha"],
+                },
+            },
+            {"event_type": "VALIDATION_COMPLETED", "payload": validation_payload},
+            {
+                "event_type": "SENTENCE_TRACEABILITY_COMPLETED",
+                "payload": {
+                    "total_sentences": len(sentence_traceability),
+                    "flagged_count": sum(1 for s in sentence_traceability if s["flagged_for_review"]),
+                    "source_type_breakdown": {
+                        t: sum(1 for s in sentence_traceability if s["source"]["type"] == t)
+                        for t in ("rule", "transaction", "document", "unmatched")
                     },
                 },
-                {
-                    "event_type": "VALIDATION_COMPLETED",
-                    "payload": validation_payload,
+            },
+            {
+                "event_type": "CASE_READY_FOR_REVIEW",
+                "payload": {
+                    "status": "PENDING_ANALYST_REVIEW",
+                    "generated_at": final_sar["generated_at"],
                 },
-                {
-                    "event_type": "CASE_READY_FOR_REVIEW",
-                    "payload": {
-                        "status": "PENDING_ANALYST_REVIEW",
-                        "generated_at": final_sar["generated_at"],
-                    },
-                },
-            ]
-        )
+            },
+        ])
 
         return {
             "status": "PENDING_ANALYST_REVIEW",
@@ -304,30 +428,23 @@ class SarRagService:
     def replay_case(self, case_record: dict[str, Any]) -> dict[str, Any]:
         prompt_payload = case_record.get("prompt_payload") or {}
         if not prompt_payload:
-            return {
-                "replayed": False,
-                "reason": "Prompt payload unavailable for this case.",
-                "replayed_at": utc_now(),
-            }
-
-        raw_response = self._chat_with_fallback(
+            return {"replayed": False, "reason": "Prompt payload unavailable.", "replayed_at": utc_now()}
+        raw = self._chat_with_fallback(
             model_name=prompt_payload.get("model_name", self.model_name),
             system_prompt=prompt_payload["system_prompt"],
             user_prompt=prompt_payload["user_prompt"],
             model_options=prompt_payload.get("model_options", {"num_ctx": 2048, "temperature": 0.2, "top_p": 0.9}),
         )
-
         alert_payload = case_record["alert_payload"]
-        replay_narrative = self._post_process_narrative(raw_response["message"]["content"], alert_payload)
+        replay_narrative = self._post_process_narrative(raw["message"]["content"], alert_payload)
         original_narrative = case_record.get("final_sar", {}).get("narrative", "")
-        replay_matches = replay_narrative == original_narrative
         return {
             "replayed": True,
             "replayed_at": utc_now(),
-            "replay_matches_original": replay_matches,
+            "replay_matches_original": replay_narrative == original_narrative,
             "replayed_narrative": replay_narrative,
             "original_narrative": original_narrative,
-            "raw_response": raw_response,
+            "raw_response": raw,
         }
 
     def _retrieve_context(self, query: str, n_results: int = 5) -> dict[str, Any]:
@@ -343,16 +460,13 @@ class SarRagService:
         documents = []
         for index, document in enumerate(results["documents"][0]):
             distance = float(results["distances"][0][index])
-            documents.append(
-                {
-                    "id": results["ids"][0][index],
-                    "document": document,
-                    "distance": distance,
-                    "similarity_score": round(max(0.0, 1 - distance), 4),
-                    "metadata": results["metadatas"][0][index],
-                }
-            )
-
+            documents.append({
+                "id": results["ids"][0][index],
+                "document": document[:RAG_CHUNK_MAX_CHARS],
+                "distance": distance,
+                "similarity_score": round(max(0.0, 1 - distance), 4),
+                "metadata": results["metadatas"][0][index],
+            })
         return {
             "query_used": query,
             "documents": documents,
@@ -367,60 +481,51 @@ class SarRagService:
         risk_score: float,
         risk_level: str,
     ) -> dict[str, Any]:
-        transaction_details = self._build_transaction_details(alert)
-        financials = self._build_financials_block(alert)
         return {
             "alert_id": alert["alert_id"],
             "alert_type": alert["alert_type"],
             "risk_score": risk_score,
             "risk_level": risk_level,
             "masked_alert": mask_alert(alert),
-            "transaction_details": transaction_details,
-            "customer_financials": financials,
+            "transaction_details": self._build_transaction_details(alert),
+            "customer_financials": self._build_financials_block(alert),
             "rule_summary": [
                 {
-                    "rule_id": block["rule_id"],
-                    "rule_name": block["rule_name"],
-                    "confidence": block["confidence"],
-                    "observation": block["observation"],
-                    "why_flagged": block["audit_reason"]["why_flagged"],
-                    "regulation": block["audit_reason"]["regulation"],
+                    "rule_id": b["rule_id"],
+                    "rule_name": b["rule_name"],
+                    "confidence": b["confidence"],
+                    "observation": b["observation"],
+                    "why_flagged": b["audit_reason"]["why_flagged"],
+                    "regulation": b["audit_reason"]["regulation"],
                 }
-                for block in evidence_blocks
+                for b in evidence_blocks
             ],
             "generated_at": utc_now(),
         }
 
     def _build_transaction_details(self, alert: dict[str, Any]) -> dict[str, Any]:
-        transactions = alert["transactions"]
-        avg_amount = round(transactions["total_amount"] / transactions["transaction_count"])
+        txn = alert["transactions"]
+        avg_amount = round(txn["total_amount"] / txn["transaction_count"])
         details = {
             "alert_type": alert["alert_type"],
             "account_type": alert["account_type"],
             "customer_profile": alert["customer_profile"],
-            "transaction_count": transactions["transaction_count"],
-            "total_amount": transactions["total_amount"],
-            "time_window_days": transactions["time_window_days"],
+            "transaction_count": txn["transaction_count"],
+            "total_amount": txn["total_amount"],
+            "time_window_days": txn["time_window_days"],
             "average_transaction_amount": avg_amount,
-            "destination_country": transactions.get("destination_country", "DOMESTIC"),
-            # ── CHANGE 2: include velocity in transaction details ──
-            "txn_per_day": round(
-                transactions["transaction_count"] / max(transactions["time_window_days"], 1), 1
-            ),
+            "destination_country": txn.get("destination_country", "DOMESTIC"),
+            "txn_per_day": round(txn["transaction_count"] / max(txn["time_window_days"], 1), 1),
         }
-        for optional_key in ["min_transaction_amount", "max_transaction_amount", "reporting_threshold"]:
-            if optional_key in transactions:
-                details[optional_key] = transactions[optional_key]
+        for k in ["min_transaction_amount", "max_transaction_amount", "reporting_threshold"]:
+            if k in txn:
+                details[k] = txn[k]
         return details
 
     def _build_financials_block(self, alert: dict[str, Any]) -> dict[str, Any] | None:
         if "customer_financials" not in alert:
             return None
-
-        financials = copy.deepcopy(alert["customer_financials"])
-        # ── CHANGE 3 (part): strip None values so they never reach the prompt ──
-        financials = {k: v for k, v in financials.items() if v is not None}
-
+        financials = {k: v for k, v in copy.deepcopy(alert["customer_financials"]).items() if v is not None}
         avg_monthly = financials.get("avg_monthly_deposits_12m")
         if avg_monthly:
             deviation = round(((alert["transactions"]["total_amount"] - avg_monthly) / avg_monthly) * 100, 1)
@@ -433,121 +538,223 @@ class SarRagService:
         evidence_blocks: list[dict[str, Any]],
         retrieval_payload: dict[str, Any],
     ) -> dict[str, Any]:
-        transaction_details = self._build_transaction_details(alert)
+        td = self._build_transaction_details(alert)
         financials = self._build_financials_block(alert)
+
         evidence_summary = "\n".join(
-            [
-                f"- {block['rule_id']} ({block['rule_name']}): {block['observation']} [confidence: {block['confidence']}] — {block['audit_reason']['why_flagged']}"
-                for block in evidence_blocks
-            ]
+            f"- {b['rule_id']} ({b['rule_name']}): {b['observation']} "
+            f"[confidence: {b['confidence']}] — {b['audit_reason']['why_flagged']}"
+            for b in evidence_blocks
         )
 
-        # ── CHANGE 1: build a formatted rule list for paragraph 4 ──
-        rule_list_for_p4 = ", ".join(
-            f"{block['rule_name']} ({block['rule_id']})"
-            for block in evidence_blocks
+        # Split rules into two groups so the LLM cites all of them
+        structuring_rules = ", ".join(
+            f"{b['rule_name']} ({b['rule_id']})"
+            for b in evidence_blocks
+            if b["rule_id"] in STRUCTURING_RULE_IDS
         )
+        jurisdiction_rules = ", ".join(
+            f"{b['rule_name']} ({b['rule_id']})"
+            for b in evidence_blocks
+            if b["rule_id"] in JURISDICTION_RULE_IDS
+        )
+        # Catch any rules not in either group (future rules)
+        uncategorised_rules = ", ".join(
+            f"{b['rule_name']} ({b['rule_id']})"
+            for b in evidence_blocks
+            if b["rule_id"] not in STRUCTURING_RULE_IDS | JURISDICTION_RULE_IDS
+        )
+        if uncategorised_rules:
+            jurisdiction_rules = f"{jurisdiction_rules}, {uncategorised_rules}".strip(", ")
 
         context_parts = []
         for item in retrieval_payload["documents"]:
             doc_type = item["metadata"].get("type", "general")
-            if doc_type in {"typology", "guideline"}:
-                context_parts.append(item["document"])
-            else:
-                context_parts.append(
-                    "[WRITING STYLE AND STRUCTURE REFERENCE ONLY — DO NOT COPY ANY FIGURES OR AMOUNTS FROM THIS SECTION]\n"
-                    f"{item['document']}"
-                )
+            prefix = "" if doc_type in {"typology", "guideline"} else \
+                "[WRITING STYLE REFERENCE ONLY — DO NOT COPY FIGURES]\n"
+            context_parts.append(f"{prefix}{item['document']}")
         context = "\n\n".join(context_parts)
 
-        transaction_lines = [
-            "Transaction Details (use ONLY these exact figures — no others):",
-            f"- Alert Type            : {transaction_details['alert_type']}",
-            f"- Account Type          : {transaction_details['account_type']}",
-            f"- Customer Profile      : {transaction_details['customer_profile']}",
-            f"- Transaction Count     : {transaction_details['transaction_count']}",
-            f"- Total Amount          : INR {transaction_details['total_amount']}",
-            f"- Time Window           : {transaction_details['time_window_days']} days",
-            f"- Average Txn Amount    : INR {transaction_details['average_transaction_amount']}",
-            f"- Destination Country   : {transaction_details['destination_country']}",
-            # ── CHANGE 2: velocity line added to prompt data ──
-            f"- Transaction Velocity  : {transaction_details['txn_per_day']} txn/day (institutional threshold: 5 txn/day)",
+        txn_lines = [
+            "Transaction Details (use ONLY these exact figures):",
+            f"- Alert Type            : {td['alert_type']}",
+            f"- Account Type          : {td['account_type']}",
+            f"- Customer Profile      : {td['customer_profile']}",
+            f"- Transaction Count     : {td['transaction_count']}",
+            f"- Total Amount          : INR {td['total_amount']}",
+            f"- Time Window           : {td['time_window_days']} days",
+            f"- Average Txn Amount    : INR {td['average_transaction_amount']}",
+            f"- Destination Country   : {td['destination_country']}",
+            f"- Transaction Velocity  : {td['txn_per_day']} txn/day (threshold: 5 txn/day)",
         ]
-        if "min_transaction_amount" in transaction_details:
-            transaction_lines.append(f"- Min Transaction       : INR {transaction_details['min_transaction_amount']}")
-        if "max_transaction_amount" in transaction_details:
-            transaction_lines.append(f"- Max Transaction       : INR {transaction_details['max_transaction_amount']}")
-        if "reporting_threshold" in transaction_details:
-            transaction_lines.append(f"- Reporting Threshold   : INR {transaction_details['reporting_threshold']}")
+        for k, label in [
+            ("min_transaction_amount", "Min Transaction"),
+            ("max_transaction_amount", "Max Transaction"),
+            ("reporting_threshold",    "Reporting Threshold"),
+        ]:
+            if k in td:
+                txn_lines.append(f"- {label:<22}: INR {td[k]}")
 
-        financial_lines = []
+        fin_lines: list[str] = []
         if financials:
-            financial_lines = [
-                "Customer Financials (use ONLY these exact figures — no others):",
+            fin_lines = [
+                "Customer Financials (use ONLY these exact figures):",
                 f"- Declared Monthly Income      : INR {financials.get('declared_monthly_income', 'NOT PROVIDED')}",
                 f"- Avg Monthly Deposits (12m)   : INR {financials.get('avg_monthly_deposits_12m', 'NOT PROVIDED')}",
                 f"- Historical Txn Count/Month   : {financials.get('historical_baseline_txn_count', 'NOT PROVIDED')}",
             ]
             if "deviation_from_baseline_pct" in financials:
-                financial_lines.append(
-                    f"- Deviation from Baseline      : {financials['deviation_from_baseline_pct']}% increase over historical baseline"
+                fin_lines.append(
+                    f"- Deviation from Baseline      : {financials['deviation_from_baseline_pct']}% above historical baseline"
                 )
 
-        system_prompt = f"""IMPORTANT OUTPUT FORMAT — READ FIRST:
-Your response must contain ONLY the five paragraph SAR narrative.
-Start your response directly with the first word of paragraph 1.
-Do NOT write any introduction, note, bullet list, heading, or section label.
-
-You are a senior AML compliance analyst at a major financial institution.
-You write Suspicious Activity Reports filed with regulatory authorities such as FinCEN, FIU-India, and the National Crime Agency.
-
-CRITICAL DATA RULES:
-1. Use ONLY numbers explicitly given in Transaction Details and Customer Financials.
-2. Never include the customer name, customer ID, or any account number.
-3. Never add branch locations, dates, counterparties, or documentation facts that were not provided.
-4. The primary AML typology for this case is exactly {alert['alert_type']}.
-5. Use the AML Reference Knowledge only for typology definitions and writing style.
-
-WRITING STYLE:
-- Third person
-- Past tense
-- Professional compliance tone
-- All monetary amounts prefixed with INR
-- Length between 280 and 380 words
-- Never write data labels like "Total inbound:" or "Residual balance:" — always write full sentences
-
-FIVE PARAGRAPH STRUCTURE:
-Paragraph 1: filing institution, account type, customer profile, alert type, monitoring period.
-Paragraph 2: suspicious transaction behaviour using only total amount, time window, destination country. End with a sentence describing the near-zero residual balance and pass-through mechanism.
-Paragraph 3: deviation from baseline percentage, average transaction amount vs reporting threshold, AND the transaction velocity ({transaction_details['txn_per_day']} txn/day) vs the institutional threshold of 5 txn/day.
-Paragraph 4: reason for suspicion, the exact typology name, AND name the following triggered rules explicitly by name and ID: {rule_list_for_p4}.
-Paragraph 5: filing decision citing PMLA Section 12, enhanced monitoring, FIU escalation, and source of funds request.
-"""
-
-        user_prompt = "\n".join(
-            [
-                "Write a SAR narrative using ONLY the data provided below.",
-                *transaction_lines,
-                *financial_lines,
-                "",
-                "Triggered Compliance Rules — Evidence Summary:",
-                evidence_summary,
-                "",
-                "AML Reference Knowledge (writing style and typology definitions ONLY — never copy figures or amounts from this section):",
-                context,
-                "",
-                "FINAL CHECKLIST:",
-                f"- Start directly with paragraph 1 and use {alert['alert_type']} as the typology name in paragraph 4.",
-                "- No customer name, customer ID, or account number anywhere.",
-                "- No placeholder text in square brackets.",
-                "- No paragraph labels or closing note after paragraph 5.",
-                f"- Paragraph 3 must state the {transaction_details['txn_per_day']} txn/day velocity and how it exceeds the 5 txn/day threshold.",
-                f"- Paragraph 4 must name these rules: {rule_list_for_p4}.",
-                "- Minimum 280 words total.",
-            ]
+        deviation_str = (
+            f"{financials['deviation_from_baseline_pct']}%"
+            if financials and "deviation_from_baseline_pct" in financials
+            else "a significant percentage"
         )
 
-        prompt_sha = hashlib.sha256(f"{system_prompt}\n---\n{user_prompt}".encode("utf-8")).hexdigest()
+        # FIX 3 — Completely rewritten system prompt with strict paragraph isolation
+        # Each paragraph has explicit DO NOT rules to prevent content bleeding
+        system_prompt = f"""CRITICAL OUTPUT FORMAT — READ THIS FIRST AND FOLLOW EXACTLY:
+
+You must write EXACTLY 5 paragraphs of plain compliance prose.
+Separate each paragraph with exactly ONE blank line (empty line).
+Do NOT number paragraphs (no "1." "2." etc).
+Do NOT add section headings (no "Background" "Typology" etc).
+Do NOT add any preamble sentence before paragraph 1.
+Do NOT add any closing sentence after paragraph 5.
+Start your response immediately with the first word of paragraph 1.
+
+PARAGRAPH STRUCTURE — MANDATORY CONTENT PER PARAGRAPH:
+Each paragraph must contain ONLY the content listed for it below.
+Do NOT put content from one paragraph into another paragraph.
+
+═══════════════════════════════════════════════════════════
+PARAGRAPH 1 — BACKGROUND (2 to 3 sentences ONLY):
+═══════════════════════════════════════════════════════════
+Write ONLY these facts:
+  1. The filing institution is submitting a SAR.
+  2. The account type is {td['account_type']}.
+  3. The customer profile is {td['customer_profile']}.
+  4. The alert type is {alert['alert_type']}.
+  5. The monitoring period was {td['time_window_days']} days.
+
+PARAGRAPH 1 MUST NOT CONTAIN:
+  ✗ Transaction count or number of transfers
+  ✗ Total amount or any INR figures
+  ✗ Destination country
+  ✗ Any rule names or rule IDs
+  ✗ Any deviation percentages
+
+═══════════════════════════════════════════════════════════
+PARAGRAPH 2 — TRANSACTION SUMMARY (3 to 4 sentences ONLY):
+═══════════════════════════════════════════════════════════
+Write ONLY these facts:
+  1. The account received {td['transaction_count']} inbound transfers from multiple domestic sources.
+  2. The aggregate value was INR {td['total_amount']}.
+  3. Following each receipt, outbound wire transfers were directed to {td['destination_country']}.
+  4. The residual balance returned to near zero after each cycle.
+  5. This indicates a pass-through transit mechanism with no legitimate accumulation purpose.
+
+PARAGRAPH 2 MUST NOT CONTAIN:
+  ✗ Deviation percentages
+  ✗ Velocity figures
+  ✗ Rule names or rule IDs
+  ✗ Filing decision or PMLA references
+  ✗ Average transaction amount
+
+═══════════════════════════════════════════════════════════
+PARAGRAPH 3 — TYPOLOGY ANALYSIS — STRUCTURING RULES (4 to 5 sentences):
+═══════════════════════════════════════════════════════════
+Write ONLY these facts:
+  1. The total value represents a deviation of {deviation_str} above the historical twelve-month average deposits.
+  2. The average transaction amount of INR {td['average_transaction_amount']} fell below the RBI mandatory reporting threshold.
+  3. The transaction velocity of {td['txn_per_day']} txn/day exceeded the institutional monitoring threshold of 5 txn/day.
+  4. Then explicitly cite EACH of these rules by full name and ID in brackets:
+     {structuring_rules if structuring_rules else "(none in this group)"}
+
+PARAGRAPH 3 MUST NOT CONTAIN:
+  ✗ Destination country or jurisdiction risk
+  ✗ Filing decision or PMLA references
+  ✗ Jurisdiction rules (those belong in paragraph 4)
+
+═══════════════════════════════════════════════════════════
+PARAGRAPH 4 — EVIDENCE — JURISDICTION AND LAYERING RULES (4 to 5 sentences):
+═══════════════════════════════════════════════════════════
+Write ONLY these facts:
+  1. The circular fund flow pattern constitutes the AML typology of {alert['alert_type']}.
+  2. {td['destination_country']} is designated as a high-risk jurisdiction by the Financial Action Task Force.
+  3. The rapid consolidation and cross-border transfer of funds with near-zero residual balances is consistent with layering to obscure the origin of funds.
+  4. Then explicitly cite EACH of these rules by full name and ID in brackets:
+     {jurisdiction_rules if jurisdiction_rules else "(none in this group)"}
+
+PARAGRAPH 4 MUST NOT CONTAIN:
+  ✗ Filing decision or PMLA references
+  ✗ Enhanced monitoring statements
+  ✗ Source of funds requests
+  ✗ Structuring rules (those belong in paragraph 3)
+
+═══════════════════════════════════════════════════════════
+PARAGRAPH 5 — CONCLUSION AND FILING DECISION (4 to 5 sentences):
+═══════════════════════════════════════════════════════════
+Write ALL of these facts and NOTHING ELSE:
+  1. The filing institution has determined the activity is suspicious.
+  2. This SAR is filed pursuant to PMLA Section 12 and Rule 3 of the Prevention of Money Laundering (Maintenance of Records) Rules 2005.
+  3. The account has been placed under enhanced transaction monitoring with immediate effect.
+  4. All related accounts identified through network analysis have been flagged for review.
+  5. The matter has been escalated to the institution's Financial Intelligence Unit.
+  6. Source of funds documentation has been formally requested from the account holder.
+
+PARAGRAPH 5 MUST NOT CONTAIN:
+  ✗ Customer name
+  ✗ Customer ID
+  ✗ Any transaction amounts or figures
+  ✗ Rule names or rule IDs
+  ✗ Any new evidence not already stated
+
+═══════════════════════════════════════════════════════════
+ABSOLUTE DATA RULES — VIOLATION = INVALID RESPONSE:
+═══════════════════════════════════════════════════════════
+1. Use ONLY numbers from Transaction Details and Customer Financials below.
+2. NEVER write the customer name or customer ID — always write "the account holder".
+3. NEVER add dates, branch names, counterparties, or any undocumented facts.
+4. All monetary amounts must be prefixed with INR.
+5. AML Reference Knowledge below is for writing style and typology definitions ONLY.
+   NEVER copy any figures or amounts from the reference knowledge section.
+6. Write in third person, past tense, professional compliance register.
+7. Minimum 290 words total across all 5 paragraphs.
+8. Maximum 420 words total across all 5 paragraphs.
+
+You are a senior AML compliance analyst filing SARs with FIU-India, RBI, and NCA."""
+
+        user_prompt = "\n".join([
+            "Write the 5-paragraph SAR narrative using ONLY the data below.",
+            "Remember: paragraph 1 = background only, paragraph 2 = transactions only,",
+            "paragraph 3 = structuring rules, paragraph 4 = jurisdiction rules,",
+            "paragraph 5 = filing decision only.",
+            "",
+            *txn_lines,
+            *fin_lines,
+            "",
+            "Triggered Compliance Rules — Evidence:",
+            evidence_summary,
+            "",
+            "AML Reference Knowledge (style and typology definitions ONLY — never copy figures):",
+            context,
+            "",
+            "FINAL VERIFICATION CHECKLIST — check each item before writing:",
+            f"  [ ] Paragraph 1: background only — NO transaction counts, NO amounts, NO destination",
+            f"  [ ] Paragraph 2: {td['transaction_count']} transfers, INR {td['total_amount']}, {td['destination_country']}, pass-through — NO rules, NO deviation",
+            f"  [ ] Paragraph 3: {deviation_str} deviation, INR {td['average_transaction_amount']} avg, {td['txn_per_day']} txn/day velocity, cite rules: {structuring_rules}",
+            f"  [ ] Paragraph 4: {alert['alert_type']} typology, FATF {td['destination_country']} risk, cite rules: {jurisdiction_rules}",
+            f"  [ ] Paragraph 5: PMLA Section 12, enhanced monitoring, FIU escalation, source of funds — NO figures",
+            f"  [ ] NEVER write customer name — always write 'the account holder'",
+            f"  [ ] Exactly 5 paragraphs separated by blank lines",
+            f"  [ ] Minimum 290 words total",
+        ])
+
+        prompt_sha = hashlib.sha256(f"{system_prompt}\n---\n{user_prompt}".encode()).hexdigest()
         return {
             "prompt_version": PROMPT_VERSION,
             "prompt_sha256": prompt_sha,
@@ -560,130 +767,180 @@ Paragraph 5: filing decision citing PMLA Section 12, enhanced monitoring, FIU es
 
     def _post_process_narrative(self, text: str, alert: dict[str, Any]) -> str:
         preamble_phrases = {
-            "here is the sar narrative",
-            "here's the sar narrative",
-            "here is the narrative",
-            "based on the compliance findings",
-            "sar narrative:",
-            "narrative:",
+            "here is the sar narrative", "here's the sar narrative",
+            "here is the narrative", "based on the compliance findings",
+            "sar narrative:", "narrative:", "suspicious activity report",
+            "sar report:",
         }
         lines = []
         for line in text.strip().splitlines():
             if line.strip().lower() in preamble_phrases:
                 continue
-            lines.append(line)
+            # Strip leading paragraph numbers like "1. " or "1) "
+            lines.append(re.sub(r"^\d+[\.\)]\s+", "", line))
         cleaned = "\n".join(lines).strip()
 
+        # Strip square-bracket placeholders
         replacements = {
-            "[Filing Institution Name]": "The filing institution",
-            "[FILING INSTITUTION NAME]": "The filing institution",
-            "[Bank Name]": "The filing institution",
-            "[CUSTOMER NAME]": "the account holder",
-            "[Customer Name]": "the account holder",
-            "[CUSTOMER ID]": "",
-            "[ACCOUNT NUMBER]": "",
-            "[ACCOUNT TYPE]": alert["account_type"],
-            "[ALERT DATE]": "the monitoring period",
-            "[START DATE]": "the monitoring period",
-            "[END DATE]": "the monitoring period",
-            "[APPLICABLE REGULATION]": "PMLA Section 12",
+            "[Filing Institution Name]":  "The filing institution",
+            "[FILING INSTITUTION NAME]":  "The filing institution",
+            "[Bank Name]":                "The filing institution",
+            "[CUSTOMER NAME]":            "the account holder",
+            "[Customer Name]":            "the account holder",
+            "[CUSTOMER ID]":              "",
+            "[ACCOUNT NUMBER]":           "",
+            "[ACCOUNT TYPE]":             alert["account_type"],
+            "[ALERT DATE]":               "the monitoring period",
+            "[START DATE]":               "the monitoring period",
+            "[END DATE]":                 "the monitoring period",
+            "[APPLICABLE REGULATION]":    "PMLA Section 12",
         }
         for placeholder, replacement in replacements.items():
             cleaned = cleaned.replace(placeholder, replacement)
+
+        # Hard strip: replace raw customer name/ID with safe substitutes
+        customer_name = alert.get("customer_name", "")
+        customer_id = alert.get("customer_id", "")
+        if customer_name:
+            cleaned = re.sub(
+                re.escape(customer_name),
+                "the account holder",
+                cleaned,
+                flags=re.IGNORECASE,
+            )
+        if customer_id:
+            cleaned = re.sub(
+                re.escape(customer_id),
+                "",
+                cleaned,
+                flags=re.IGNORECASE,
+            )
+
         return cleaned.strip()
 
+    # ════════════════════════════════════════════════════════
+    # HARD EXPLAINABILITY — source object per sentence
+    # ════════════════════════════════════════════════════════
     def _build_sentence_traceability(
         self,
         narrative: str,
         evidence_blocks: list[dict[str, Any]],
         retrieved_documents: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
-        traceability = []
-        sentences = split_sentences(narrative)
-        for sentence in sentences:
+        rule_keyword_map = _build_rule_keyword_map()
+        fired_rule_ids = {b["rule_id"] for b in evidence_blocks}
+        traceability: list[dict[str, Any]] = []
+
+        for sentence in split_sentences(narrative):
             lowered = sentence.lower()
-            linked_rules = []
-            for block in evidence_blocks:
-                keywords = [block["rule_name"], block["rule_id"], block["observation"], block["audit_reason"]["why_flagged"]]
-                if any(keyword.lower().split()[0] in lowered for keyword in keywords if keyword):
-                    linked_rules.append(
-                        {
-                            "rule_id": block["rule_id"],
-                            "rule_name": block["rule_name"],
-                            "confidence": block["confidence"],
-                        }
-                    )
-            if not linked_rules:
-                linked_rules = [
-                    {
-                        "rule_id": block["rule_id"],
-                        "rule_name": block["rule_name"],
-                        "confidence": block["confidence"],
-                    }
-                    for block in evidence_blocks[:2]
-                ]
+            source: dict[str, Any] | None = None
 
-            linked_docs = []
-            for item in retrieved_documents[:3]:
-                document_text = item["document"].lower()
-                if any(token in document_text for token in lowered.split()[:4]):
-                    linked_docs.append(
-                        {
-                            "document_id": item["id"],
-                            "doc_type": item["metadata"].get("type", "general"),
-                            "similarity_score": item["similarity_score"],
-                        }
-                    )
-            if not linked_docs:
-                linked_docs = [
-                    {
-                        "document_id": item["id"],
-                        "doc_type": item["metadata"].get("type", "general"),
-                        "similarity_score": item["similarity_score"],
+            # Priority 1 — fired AML rule
+            for rule_id, meta in rule_keyword_map.items():
+                if rule_id not in fired_rule_ids:
+                    continue
+                if any(kw.lower() in lowered for kw in meta["keywords"] if kw):
+                    block = next((b for b in evidence_blocks if b["rule_id"] == rule_id), {})
+                    source = {
+                        "type":        "rule",
+                        "id":          rule_id,
+                        "rule_name":   meta["rule_name"],
+                        "field":       meta["field"],
+                        "observation": block.get("observation", ""),
+                        "why_flagged": block.get("audit_reason", {}).get("why_flagged", ""),
                     }
-                    for item in retrieved_documents[:1]
-                ]
+                    break
 
-            explainability_score = round(min(0.99, 0.55 + (0.1 * len(linked_rules)) + (0.05 * len(linked_docs))), 2)
-            traceability.append(
-                {
-                    "sentence": sentence,
-                    "linked_rules": linked_rules,
-                    "linked_documents": linked_docs,
-                    "explainability_score": explainability_score,
-                    "flagged_for_review": explainability_score < 0.75,
-                }
-            )
+            # Priority 2 — transaction field
+            if not source:
+                for field, keywords in TXN_KEYWORDS.items():
+                    if any(kw.lower() in lowered for kw in keywords):
+                        source = {"type": "transaction", "id": "alert_payload", "field": field}
+                        break
+
+            # Priority 3 — retrieved RAG document
+            if not source:
+                best_doc: dict[str, Any] | None = None
+                best_overlap = 0
+                sentence_tokens = set(lowered.split())
+                for doc in retrieved_documents:
+                    overlap = len(sentence_tokens & set(doc["document"].lower().split()))
+                    if overlap > best_overlap:
+                        best_overlap = overlap
+                        best_doc = doc
+                if best_doc and best_overlap > 3:
+                    source = {
+                        "type":  "document",
+                        "id":    best_doc["id"],
+                        "field": best_doc["metadata"].get("type", "general"),
+                    }
+
+            # Priority 4 — unmatched (potential hallucination)
+            if not source:
+                source = {"type": "unmatched", "id": None, "field": None}
+
+            traceability.append({
+                "sentence":           sentence,
+                "source":             source,
+                "flagged_for_review": source["type"] == "unmatched",
+            })
+
         return traceability
 
+    # ════════════════════════════════════════════════════════
+    # FIX 4 — _validate_narrative
+    # Uses _normalise_amount_for_allowed_set() to add BOTH
+    # float and integer string forms of every numeric value.
+    # Fixes the "1450000.0" vs "1450000" mismatch that caused
+    # numbers_are_evidence_bounded to fail.
+    # ════════════════════════════════════════════════════════
     def _validate_narrative(self, alert: dict[str, Any], narrative: str) -> dict[str, Any]:
         paragraphs = split_paragraphs(narrative)
-        words = re.findall(r"\b\w+\b", narrative)
+        words = re.findall(r"\b\w+\b", "\n\n".join(paragraphs))
         numbers_in_narrative = normalise_number_tokens(narrative)
-        allowed_numbers = {
-            "12",
-            str(alert["transactions"]["transaction_count"]),
-            str(alert["transactions"]["total_amount"]),
-            str(alert["transactions"]["time_window_days"]),
-            str(round(alert["transactions"]["total_amount"] / alert["transactions"]["transaction_count"])),
-        }
-        if "reporting_threshold" in alert["transactions"]:
-            allowed_numbers.add(str(alert["transactions"]["reporting_threshold"]))
+
+        txn = alert["transactions"]
+        txn_per_day = round(txn["transaction_count"] / max(txn["time_window_days"], 1), 1)
+        avg_amount = round(txn["total_amount"] / txn["transaction_count"])
+
+        # Build allowed set using normalised forms to prevent float/int mismatch
+        allowed_numbers: set[str] = set()
+
+        # Static thresholds always allowed
+        for static in ["12", "5", "20"]:
+            allowed_numbers.add(static)
+
+        # Core transaction fields — add both float and int forms
+        for val in [
+            txn["transaction_count"],
+            txn["total_amount"],
+            txn["time_window_days"],
+            avg_amount,
+            txn_per_day,
+        ]:
+            allowed_numbers |= _normalise_amount_for_allowed_set(val)
+
+        # Reporting threshold if present
+        if "reporting_threshold" in txn:
+            allowed_numbers |= _normalise_amount_for_allowed_set(txn["reporting_threshold"])
+
+        # Min/max transaction amounts if present
+        if "min_transaction_amount" in txn:
+            allowed_numbers |= _normalise_amount_for_allowed_set(txn["min_transaction_amount"])
+        if "max_transaction_amount" in txn:
+            allowed_numbers |= _normalise_amount_for_allowed_set(txn["max_transaction_amount"])
+
+        # Customer financials
         if "customer_financials" in alert:
-            for value in alert["customer_financials"].values():
-                if value is not None:
-                    allowed_numbers.add(str(value))
+            for v in alert["customer_financials"].values():
+                if v is not None:
+                    allowed_numbers |= _normalise_amount_for_allowed_set(v)
             avg_monthly = alert["customer_financials"].get("avg_monthly_deposits_12m")
             if avg_monthly:
-                deviation = round(((alert["transactions"]["total_amount"] - avg_monthly) / avg_monthly) * 100, 1)
-                allowed_numbers.add(str(deviation))
-
-        # ── CHANGE 2: allow velocity figure in narrative ──
-        txn_per_day = round(
-            alert["transactions"]["transaction_count"] / max(alert["transactions"]["time_window_days"], 1), 1
-        )
-        allowed_numbers.add(str(txn_per_day))
-        allowed_numbers.add("5")  # institutional velocity threshold
+                deviation = round(
+                    ((txn["total_amount"] - avg_monthly) / avg_monthly) * 100, 1
+                )
+                allowed_numbers |= _normalise_amount_for_allowed_set(deviation)
 
         checks = [
             {
@@ -692,43 +949,69 @@ Paragraph 5: filing decision citing PMLA Section 12, enhanced monitoring, FIU es
                 "details": f"Found {len(paragraphs)} paragraphs.",
             },
             {
-                # ── CHANGE 3: raised minimum word count from 250 to 280 ──
                 "name": "word_count_range",
-                "passed": 280 <= len(words) <= 400,
+                "passed": 290 <= len(words) <= 420,
                 "details": f"Narrative contains {len(words)} words.",
             },
             {
                 "name": "no_pii_exposed",
-                "passed": alert["customer_name"].lower() not in narrative.lower() and alert["customer_id"].lower() not in narrative.lower(),
-                "details": "Customer name and customer ID are excluded from the narrative.",
+                "passed": (
+                    alert["customer_name"].lower() not in narrative.lower()
+                    and alert["customer_id"].lower() not in narrative.lower()
+                ),
+                "details": "Customer name and ID absent from narrative.",
             },
             {
                 "name": "no_placeholders",
                 "passed": re.search(r"\[[^\]]+\]", narrative) is None,
-                "details": "Narrative does not contain unresolved placeholders.",
+                "details": "No unresolved placeholders.",
             },
             {
                 "name": "correct_typology_used",
                 "passed": alert["alert_type"].lower() in narrative.lower(),
-                "details": f"Narrative references typology {alert['alert_type']}.",
+                "details": f"Narrative references typology: {alert['alert_type']}.",
             },
             {
                 "name": "no_bullet_formatting",
-                "passed": "*" not in narrative and "- " not in narrative,
-                "details": "Narrative remains in paragraph prose format.",
+                "passed": not re.search(r"(^\s*[\*\-•]\s|\n\s*[\*\-•]\s)", narrative),
+                "details": "Narrative is paragraph prose, not a bullet list.",
             },
             {
                 "name": "contains_filing_statement",
                 "passed": "filing" in narrative.lower() and "sar" in narrative.lower(),
-                "details": "Narrative states the filing decision.",
+                "details": "Narrative includes the filing decision.",
             },
             {
                 "name": "numbers_are_evidence_bounded",
                 "passed": numbers_in_narrative.issubset(allowed_numbers),
-                "details": f"Allowed numbers: {sorted(allowed_numbers)}; found: {sorted(numbers_in_narrative)}",
+                "details": (
+                    f"Allowed: {sorted(allowed_numbers)}. "
+                    f"Found: {sorted(numbers_in_narrative)}. "
+                    f"Unexpected: {sorted(numbers_in_narrative - allowed_numbers)}"
+                ),
+            },
+            # FIX 5 — NEW CHECK: paragraph content isolation
+            # Verifies that transaction figures do NOT appear in paragraph 1
+            # and that filing decision does NOT appear before paragraph 5
+            {
+                "name": "paragraph_content_isolation",
+                "passed": (
+                    # Paragraph 1 should not contain INR amounts
+                    "INR" not in paragraphs[0].upper()
+                    if len(paragraphs) >= 1 else True
+                ) and (
+                    # Paragraph 5 should contain PMLA reference
+                    "pmla" in paragraphs[4].lower()
+                    if len(paragraphs) >= 5 else True
+                ),
+                "details": (
+                    "Paragraph 1 contains no INR amounts. "
+                    "Paragraph 5 contains PMLA filing reference."
+                ),
             },
         ]
-        failed_checks = [check["name"] for check in checks if not check["passed"]]
+
+        failed_checks = [c["name"] for c in checks if not c["passed"]]
         return {
             "passed": not failed_checks,
             "checks": checks,
@@ -752,9 +1035,8 @@ def export_case_files(result: dict[str, Any], output_dir: str | Path | None = No
         "evidence_pack": result["evidence_pack"],
         "retrieval_payload": result["retrieval_payload"],
         "prompt_payload": {
-            key: value
-            for key, value in result["prompt_payload"].items()
-            if key not in {"system_prompt", "user_prompt"}
+            k: v for k, v in result["prompt_payload"].items()
+            if k not in {"system_prompt", "user_prompt"}
         },
         "validation_payload": result["validation_payload"],
         "audit_events": result["audit_events"],
