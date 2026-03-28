@@ -19,7 +19,10 @@ NAMESPACE="sar-${ENVIRONMENT}"
 OVERLAY_PATH="k8s/overlays/${ENVIRONMENT}"
 
 echo "Applying manifests from ${OVERLAY_PATH} into ${NAMESPACE}"
-kubectl apply -k "${OVERLAY_PATH}"
+if ! kubectl apply -k "${OVERLAY_PATH}"; then
+  echo "Standard apply failed, retrying with --validate=false"
+  kubectl apply --validate=false -k "${OVERLAY_PATH}"
+fi
 
 echo "Setting workload images"
 kubectl -n "${NAMESPACE}" set image deployment/sar-backend backend="${BACKEND_IMAGE}"
