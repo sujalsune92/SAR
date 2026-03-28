@@ -184,12 +184,14 @@ def enrich_narrative_with_pii(narrative: str, alert_payload: dict[str, Any]) -> 
     """
     customer_name    = str(alert_payload.get("customer_name") or "N/A")
     account_type     = str(alert_payload.get("account_type") or "N/A")
+    customer_profile = str(alert_payload.get("customer_profile") or "N/A")
 
     replacements = [
         (r"\bthe\s+account\s+holder\b", customer_name),
         (r"\bthe\s+subject\b",           customer_name),
         (r"\bthe\s+customer\b",          customer_name),
         (r"\ba\s+savings\s+account\b",   f"{account_type} account"),
+        (r"\ba\s+student\s+profile\b",   f"{customer_profile} profile"),
     ]
 
     enriched = narrative or ""
