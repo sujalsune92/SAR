@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - configmap.yaml
+  - pvc-chroma.yaml
+  - pvc-ollama.yaml
+  - postgres-statefulset.yaml
+  - ollama-deployment.yaml
+  - backend-deployment.yaml
+  - frontend-deployment.yaml
+  - services.yaml
+  - ingress.yaml
+  - hpa.yaml
+
+images:
+  - name: sar-backend
+    newName: ghcr.io/rohit90966/sar-backend
+    newTag: latest
+  - name: sar-frontend
+    newName: ghcr.io/rohit90966/sar-frontend
+    newTag: latest

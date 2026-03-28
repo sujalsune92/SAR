@@ -32,7 +32,7 @@ load_dotenv()
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5432/sar_audit",
+    "postgresql://postgres:postgres@postgres:5432/sar_audit",
 )
 
 # ── Seed constants ────────────────────────────────────────────────────────────

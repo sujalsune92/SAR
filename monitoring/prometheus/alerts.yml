@@ -1,0 +1,20 @@
+groups:
+  - name: sar-alerts
+    rules:
+      - alert: SarBackendDown
+        expr: up{job="sar-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SAR backend is down"
+          description: "Prometheus cannot reach backend metrics endpoint for 2 minutes."
+
+      - alert: SarBackendHighLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="sar-backend"}[5m])) by (le)) > 1.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SAR backend latency high"
+          description: "P95 request latency is above 1.5 seconds for 5 minutes."

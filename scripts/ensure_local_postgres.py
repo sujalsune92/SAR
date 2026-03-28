@@ -10,7 +10,7 @@ from psycopg2 import OperationalError
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 
-DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/sar_audit"
+DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/sar_audit"
 ROOT_DIR = Path(__file__).resolve().parents[1]
 
 

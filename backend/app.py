@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from io import BytesIO
 import json
+import os
 import re
 from typing import Any
 from uuid import uuid4
@@ -14,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from jose import JWTError, jwt
 from pydantic import BaseModel
+from prometheus_fastapi_instrumentator import Instrumentator
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -38,7 +40,15 @@ app = FastAPI(title="SAR Narrative Generator API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "http://127.0.0.1:8080", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "http://localhost:3000",
+        "http://localhost",
+        "http://127.0.0.1",
+        "http://frontend",
+        "http://localhost:80",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,7 +56,7 @@ app.add_middleware(
 
 service = SarRagService()
 
-JWT_SECRET_KEY = "sar-narrative-secret"
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "sar-narrative-secret")
 JWT_ALGORITHM  = "HS256"
 USERS = {
     "analyst": {"password": "password123", "role": "analyst"},
@@ -87,7 +97,17 @@ def serialise(payload: Any) -> Any:
 
 def build_case_response(case_record: dict[str, Any]) -> dict[str, Any]:
     response = serialise(case_record)
-    response["audit_events"] = serialise(get_audit_events(str(case_record["case_id"])))
+    audit_events = serialise(get_audit_events(str(case_record["case_id"])))
+    response["audit_events"] = audit_events
+
+    # Backfill validation payload for legacy/partial records so UI can always render checks.
+    if not response.get("validation_payload"):
+        for event in reversed(audit_events):
+            if event.get("event_type") == "VALIDATION_COMPLETED":
+                payload = event.get("event_payload") or {}
+                if isinstance(payload, dict):
+                    response["validation_payload"] = payload
+                    break
     return response
 
 
@@ -417,6 +437,7 @@ def _build_pdf(case_record: dict[str, Any]) -> bytes:
     prompt_payload     = case_record.get("prompt_payload") or {}
     retrieval_payload  = case_record.get("retrieval_payload") or {}
     enrichment_payload = case_record.get("enrichment_payload") or {}
+    validation_payload = case_record.get("validation_payload") or {}
 
     # PII fields from alert_payload — reinserted at export time
     customer_name    = _safe_value(alert_payload.get("customer_name"))
@@ -662,6 +683,54 @@ def _build_pdf(case_record: dict[str, Any]) -> bytes:
         flow.append(Paragraph(_safe_value(section_text), body_style))
         flow.append(Spacer(1, 12))
 
+    # ── NARRATIVE VALIDATION RESULTS ─────────────────────────────────────
+    validation_checks = validation_payload.get("checks") if isinstance(validation_payload, dict) else None
+    if not validation_checks:
+        # Fallback for legacy records where validation payload is absent in cases table.
+        case_id_str = str(case_record.get("case_id") or "")
+        if case_id_str:
+            for event in reversed(get_audit_events(case_id_str)):
+                if event.get("event_type") == "VALIDATION_COMPLETED":
+                    payload = event.get("event_payload") or {}
+                    if isinstance(payload, dict):
+                        validation_checks = payload.get("checks") or []
+                    break
+
+    flow.append(_section_bar("Narrative Validation Results", W))
+    if validation_checks:
+        validation_rows: list[list[Any]] = [
+            [Paragraph("Check Name", bold_9), Paragraph("Result", bold_9)]
+        ]
+        for check in validation_checks:
+            check_name = _safe_value((check or {}).get("name")).replace("_", " ")
+            passed = bool((check or {}).get("passed"))
+            symbol = "✓" if passed else "✗"
+            symbol_color = "#28A745" if passed else "#DC3545"
+            validation_rows.append([
+                Paragraph(check_name, normal_9),
+                Paragraph(f"<font color='{symbol_color}'>{symbol}</font>", normal_9),
+            ])
+
+        validation_table = Table(validation_rows, colWidths=[W * 0.75, W * 0.25])
+        validation_style = [
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#DDE7F0")),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#C7CED6")),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]
+        for row_idx in range(1, len(validation_rows)):
+            if row_idx % 2 == 0:
+                validation_style.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#F8FAFC")))
+        validation_table.setStyle(TableStyle(validation_style))
+        flow.append(validation_table)
+    else:
+        flow.append(Paragraph("Validation checks are not available for this case.", italic_8_gray))
+    flow.append(Spacer(1, 12))
+
     # ── SUSPICIOUS TRANSACTIONS TABLE ────────────────────────────────────
     # This table is populated from enrichment pii_sealed data.
     # It contains the actual DB transaction records from the alert window.
@@ -771,6 +840,8 @@ def _build_pdf(case_record: dict[str, Any]) -> bytes:
 @app.on_event("startup")
 def on_startup() -> None:
     init_db()
+    # Expose /metrics for Prometheus scraping.
+    Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/health")

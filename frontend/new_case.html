@@ -36,7 +36,8 @@
             <button id="submitBtn" class="btn-primary" disabled>Submit Case</button>
             <div id="loading" class="hidden" style="text-align:center; margin-top: 14px;">
               <div class="spinner"></div>
-              <div>Running pipeline. This may take 60-90 seconds...</div>
+              <div id="loadingText">Running pipeline. Expected 1-4 minutes on CPU with phi3:mini.</div>
+              <div id="elapsedText" style="margin-top: 6px; color: #6c757d; font-size: 13px;">Elapsed: 0s</div>
             </div>
             <div id="result" style="margin-top: 12px"></div>
           </div>
@@ -56,10 +57,28 @@
       const previewTable = document.getElementById("previewTable");
       const submitBtn = document.getElementById("submitBtn");
       const loadingEl = document.getElementById("loading");
+      const elapsedText = document.getElementById("elapsedText");
       const resultEl = document.getElementById("result");
       const errorEl = document.getElementById("error");
 
       let alertPayload = null;
+      let elapsedTimer = null;
+
+      function startElapsedTimer() {
+        const startedAt = Date.now();
+        elapsedText.textContent = "Elapsed: 0s";
+        elapsedTimer = setInterval(() => {
+          const seconds = Math.floor((Date.now() - startedAt) / 1000);
+          elapsedText.textContent = `Elapsed: ${seconds}s`;
+        }, 1000);
+      }
+
+      function stopElapsedTimer() {
+        if (elapsedTimer) {
+          clearInterval(elapsedTimer);
+          elapsedTimer = null;
+        }
+      }
 
       function flattenObject(obj, prefix = "") {
         const rows = [];
@@ -129,6 +148,7 @@
 
         submitBtn.disabled = true;
         loadingEl.classList.remove("hidden");
+        startElapsedTimer();
         resultEl.innerHTML = "";
 
         try {
@@ -148,6 +168,7 @@
         } catch (error) {
           resultEl.innerHTML = `<div class="error">Failed to create case: ${error.message}</div>`;
         } finally {
+          stopElapsedTimer();
           loadingEl.classList.add("hidden");
           submitBtn.disabled = false;
         }

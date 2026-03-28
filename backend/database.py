@@ -17,7 +17,7 @@ def utc_now() -> datetime:
 def get_database_url() -> str:
     return os.getenv(
         "DATABASE_URL",
-        "postgresql://postgres:postgres@localhost:5432/sar_audit",
+        "postgresql://postgres:postgres@postgres:5432/sar_audit",
     )
 
 

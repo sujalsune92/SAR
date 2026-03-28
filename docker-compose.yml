@@ -1,0 +1,111 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: sar-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-sar_audit}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sar_network
+    restart: unless-stopped
+
+  # Ollama - Local LLM service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: sar-ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - sar_network
+    restart: unless-stopped
+    # Note: You'll need to pull models separately
+    # See Manual Steps Required section
+
+  # Backend - FastAPI Application
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: sar-backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-sar_audit}
+      CHROMA_DB_PATH: /app/rag_pipeline/vector_db
+      DATA_FOLDER: /app/data
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-mistral:7b}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-sar-narrative-secret}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - chroma_data:/app/rag_pipeline/vector_db
+      - ./data:/app/data
+      - ./__pycache__:/app/__pycache__
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - sar_network
+    restart: unless-stopped
+    command: ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  # Frontend - Nginx Static Server
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: sar-frontend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - backend
+    networks:
+      - sar_network
+    restart: unless-stopped
+
+  # ChromaDB - Vector Database (if needed separately)
+  # Uncomment if you need ChromaDB as a standalone service
+  # chromadb:
+  #   image: chromadb/chroma:latest
+  #   container_name: sar-chromadb
+  #   ports:
+  #     - "8001:8000"
+  #   volumes:
+  #     - chromadb_data:/chroma/data
+  #   networks:
+  #     - sar_network
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  ollama_data:
+    driver: local
+  chroma_data:
+    driver: local
+  # chromadb_data:
+  #   driver: local
+
+networks:
+  sar_network:
+    driver: bridge

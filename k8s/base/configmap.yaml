@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sar-config
+
+data:
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "info"
+  CHROMA_DB_PATH: "/app/rag_pipeline/vector_db"
+  DATA_FOLDER: "/app/data"
+  OLLAMA_HOST: "http://ollama:11434"
+  OLLAMA_BASE_URL: "http://ollama:11434"
+  OLLAMA_MODEL: "mistral:7b"

@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+spec:
+  selector:
+    app: ollama
+  ports:
+    - name: http
+      port: 11434
+      targetPort: 11434
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sar-backend
+spec:
+  selector:
+    app: sar-backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sar-frontend
+spec:
+  selector:
+    app: sar-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80

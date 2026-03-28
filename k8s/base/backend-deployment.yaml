@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sar-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sar-backend
+  template:
+    metadata:
+      labels:
+        app: sar-backend
+    spec:
+      containers:
+        - name: backend
+          image: sar-backend
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: sar-config
+            - secretRef:
+                name: sar-secrets
+          volumeMounts:
+            - name: chroma-data
+              mountPath: /app/rag_pipeline/vector_db
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 40
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 300m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+      volumes:
+        - name: chroma-data
+          persistentVolumeClaim:
+            claimName: chroma-pvc

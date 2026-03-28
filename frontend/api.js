@@ -1,4 +1,9 @@
-const API_BASE = "http://localhost:8000";
+// Use relative paths for Docker Compose setup
+// In nginx config, /cases, /login, etc. are proxied to backend:8000
+// For direct backend access, can also use: http://backend:8000
+const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+  ? `http://${window.location.hostname}` 
+  : "http://localhost:8000";
 
 function getToken() {
   return sessionStorage.getItem("jwt_token");

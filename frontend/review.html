@@ -56,6 +56,7 @@
             <button id="approveBtn" class="btn-success" disabled>Approve</button>
             <button id="rejectBtn" class="btn-danger" disabled>Reject</button>
             <button id="replayBtn" class="btn-warning">Replay</button>
+            <button id="downloadPdfBtn" class="btn-primary">Download Final SAR PDF</button>
           </div>
           <div id="resultMessage"></div>
         </div>
@@ -73,7 +74,7 @@
     </div>
 
     <script type="module">
-      import { getCase, reviewCase, replayCase } from "./api.js";
+      import { getCase, reviewCase, replayCase, exportPDF } from "./api.js";
 
       if (!sessionStorage.getItem("jwt_token")) {
         window.location.href = "index.html";
@@ -88,6 +89,7 @@
       const approveBtn = document.getElementById("approveBtn");
       const rejectBtn = document.getElementById("rejectBtn");
       const replayBtn = document.getElementById("replayBtn");
+      const downloadPdfBtn = document.getElementById("downloadPdfBtn");
       const resultMessage = document.getElementById("resultMessage");
       const replayModal = document.getElementById("replayModal");
       const replayContent = document.getElementById("replayContent");
@@ -107,11 +109,62 @@
       let sentenceScores = [];
 
       function splitIntoFiveSections(text) {
-        const parts = text.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
-        while (parts.length < 5) {
-          parts.push("");
+        const raw = (text || "").trim();
+        if (!raw) {
+          return ["", "", "", "", ""];
         }
-        return parts.slice(0, 5);
+
+        const headingRegex = /(^|\n)\s*(background|transaction\s+summary|typology|evidence|conclusion)\s*:?\s*(?=\n|$)/gi;
+        const headingMatches = [...raw.matchAll(headingRegex)];
+
+        if (headingMatches.length >= 2) {
+          const map = {
+            background: "",
+            transactions: "",
+            typology: "",
+            evidence: "",
+            conclusion: "",
+          };
+
+          for (let i = 0; i < headingMatches.length; i += 1) {
+            const match = headingMatches[i];
+            const heading = (match[2] || "").toLowerCase().replace(/\s+/g, " ");
+            const start = match.index + match[0].length;
+            const end = i + 1 < headingMatches.length ? headingMatches[i + 1].index : raw.length;
+            const body = raw.slice(start, end).trim();
+
+            if (heading === "background") map.background = body;
+            if (heading === "transaction summary") map.transactions = body;
+            if (heading === "typology") map.typology = body;
+            if (heading === "evidence") map.evidence = body;
+            if (heading === "conclusion") map.conclusion = body;
+          }
+
+          return [
+            map.background,
+            map.transactions,
+            map.typology,
+            map.evidence,
+            map.conclusion,
+          ];
+        }
+
+        const byBlank = raw.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+        if (byBlank.length >= 5) {
+          return byBlank.slice(0, 5);
+        }
+
+        const sentences = raw.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean);
+        if (sentences.length === 0) {
+          return ["", "", "", "", ""];
+        }
+
+        const chunks = ["", "", "", "", ""];
+        const size = Math.ceil(sentences.length / 5);
+        for (let i = 0; i < 5; i += 1) {
+          chunks[i] = sentences.slice(i * size, (i + 1) * size).join(" ").trim();
+        }
+        return chunks;
       }
 
       function sentenceClass(score) {
@@ -143,10 +196,32 @@
         rejectBtn.disabled = !valid;
       }
 
+      async function downloadFinalPdf() {
+        try {
+          const blob = await exportPDF(caseId);
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `SAR_${caseId}.pdf`;
+          a.click();
+          URL.revokeObjectURL(url);
+        } catch (error) {
+          alert(`PDF export failed: ${error.message}`);
+        }
+      }
+
       function displayValidationChecks(checks) {
         if (!checks || checks.length === 0) {
-          validationPanel.style.display = "none";
-          validationBanner.style.display = "none";
+          validationPanel.style.display = "block";
+          validationChecks.innerHTML = `
+            <div class="validation-check">
+              <div class="validation-check-name">Validation data unavailable</div>
+              <div class="validation-check-result failed">!</div>
+            </div>
+          `;
+          validationBanner.className = "validation-banner warning";
+          validationBanner.textContent = "Validation checks are missing for this case record.";
+          validationBanner.style.display = "block";
           return;
         }
 
@@ -235,6 +310,7 @@
       approveBtn.addEventListener("click", () => submitReview("APPROVE"));
       rejectBtn.addEventListener("click", () => submitReview("REJECT"));
       replayBtn.addEventListener("click", doReplay);
+      downloadPdfBtn.addEventListener("click", downloadFinalPdf);
 
       async function loadCaseDetail() {
         try {
@@ -272,8 +348,17 @@
           applySentenceStyling(document.getElementById("sec-evidence"), sections[3]);
           applySentenceStyling(document.getElementById("sec-conclusion"), sections[4]);
 
-          const validationPayload = detail.validation_payload || {};
-          const checks = validationPayload.checks || [];
+          let validationPayload = detail.validation_payload || {};
+          let checks = validationPayload.checks || [];
+          if ((!checks || checks.length === 0) && Array.isArray(detail.audit_events)) {
+            const validationEvent = [...detail.audit_events]
+              .reverse()
+              .find((event) => event.event_type === "VALIDATION_COMPLETED");
+            if (validationEvent && validationEvent.event_payload) {
+              validationPayload = validationEvent.event_payload;
+              checks = validationPayload.checks || [];
+            }
+          }
           displayValidationChecks(checks);
         } catch (error) {
           alert(`Failed to load case: ${error.message}`);
