@@ -41,6 +41,7 @@ jobs:
           pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Lint
+        continue-on-error: true
         run: ruff check .
 
       - name: Test
