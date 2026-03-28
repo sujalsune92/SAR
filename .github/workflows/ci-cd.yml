@@ -22,8 +22,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: sar-cicd-${{ github.ref }}
-  cancel-in-progress: true
+  group: sar-cicd-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
