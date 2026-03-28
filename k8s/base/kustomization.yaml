@@ -15,8 +15,8 @@ resources:
 
 images:
   - name: sar-backend
-    newName: ghcr.io/rohit90966/sar-backend
+    newName: ghcr.io/sujalsune92/sar-backend
     newTag: latest
   - name: sar-frontend
-    newName: ghcr.io/rohit90966/sar-frontend
+    newName: ghcr.io/sujalsune92/sar-frontend
     newTag: latest

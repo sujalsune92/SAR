@@ -18,7 +18,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAMESPACE: rohit90966
+  IMAGE_NAMESPACE: sujalsune92
 
 jobs:
   quality:
@@ -171,6 +171,8 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment:
       name: staging
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
     steps:
       - name: Checkout
@@ -196,9 +198,7 @@ jobs:
           ./scripts/rollback_k8s.sh staging
 
       - name: Notify staging failure
-        if: failure() && secrets.SLACK_WEBHOOK_URL != ''
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
         run: |
           curl -X POST -H 'Content-type: application/json' --data '{"text":"SAR staging deployment failed for '${{ github.sha }}'. Rollback attempted."}' "$SLACK_WEBHOOK_URL"
 
@@ -209,6 +209,8 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment:
       name: production
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
     steps:
       - name: Checkout
@@ -234,15 +236,11 @@ jobs:
           ./scripts/rollback_k8s.sh production
 
       - name: Notify production failure
-        if: failure() && secrets.SLACK_WEBHOOK_URL != ''
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
         run: |
           curl -X POST -H 'Content-type: application/json' --data '{"text":"SAR production deployment failed for '${{ github.sha }}'. Rollback attempted."}' "$SLACK_WEBHOOK_URL"
 
       - name: Notify production success
-        if: success() && secrets.SLACK_WEBHOOK_URL != ''
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: success() && env.SLACK_WEBHOOK_URL != ''
         run: |
           curl -X POST -H 'Content-type: application/json' --data '{"text":"SAR production deployment succeeded for '${{ github.sha }}'."}' "$SLACK_WEBHOOK_URL"
