@@ -38,6 +38,9 @@ from .schemas import AlertPayload, ReplayResponse, ReviewRequest
 
 app = FastAPI(title="SAR Narrative Generator API", version="2.0.0")
 
+# Register metrics middleware before app startup lifecycle begins.
+Instrumentator().instrument(app).expose(app)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -842,8 +845,6 @@ def _build_pdf(case_record: dict[str, Any]) -> bytes:
 @app.on_event("startup")
 def on_startup() -> None:
     init_db()
-    # Expose /metrics for Prometheus scraping.
-    Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/health")
