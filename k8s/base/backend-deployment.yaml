@@ -16,6 +16,11 @@ spec:
         - name: backend
           image: sar-backend
           imagePullPolicy: Always
+          command: ["/bin/sh", "-c"]
+          args:
+            - >-
+              sed -i 's/Instrumentator().instrument(app).expose(app)/pass/' /app/backend/app.py;
+              exec uvicorn backend.app:app --host 0.0.0.0 --port 8000
           ports:
             - containerPort: 8000
               name: http
